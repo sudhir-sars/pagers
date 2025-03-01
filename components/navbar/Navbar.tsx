@@ -1,3 +1,4 @@
+// components/navbar/Navbar.tsx
 'use client';
 import Link from 'next/link';
 import { ThemeToggle } from '../Theme/ThemeToggle';
@@ -5,24 +6,30 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { CiSearch } from 'react-icons/ci';
 import NotificationsDropdown from '@/components/navbar/NotificationsDropdown';
-import MessagesDropdown from '@/components/navbar/MessagesDropdown';
+import MessagesDialog from '../messages/MessagesDialog';
 import MoreDropdown from '@/components/navbar/MoreDropdown';
 
-export default function Navbar() {
+interface NavbarProps {
+  onNavItemClick?: (view: 'feed' | 'messages') => void;
+}
+
+export default function Navbar({ onNavItemClick }: NavbarProps) {
+  // Create a set of navigation buttons. You can adjust the styling as needed.
   const NavLinks = () => (
     <>
+      <button
+        onClick={() => onNavItemClick?.('feed')}
+        className="px-3 py-2 hover:bg-gray-100 rounded"
+      ></button>
       <NotificationsDropdown />
-      <MessagesDropdown />
+      <MessagesDialog />
       <MoreDropdown />
       <ThemeToggle />
     </>
   );
 
   return (
-    <header
-      className="rounded-b-2xl border-r border-l fixed top-0 left-1/2 transform -translate-x-1/2 w-[75vw] flex items-center justify-between px-4 lg:px-6 h-14 border-b z-50
-      border-border/40 bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/50"
-    >
+    <header className="rounded-b-2xl border-r border-l fixed top-0 left-1/2 transform -translate-x-1/2 w-[75vw] flex items-center justify-between px-4 lg:px-6 h-14 border-b z-50 border-border/40 bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/50">
       <Link href="/" className="flex items-center" prefetch={false}>
         <div className="h-8 w-8">{/* Insert your logo image here */}</div>
         <span className="text-xl font-bold ml-3 md:inline">Pager</span>

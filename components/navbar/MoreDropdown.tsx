@@ -17,7 +17,7 @@ const MoreDropdown = () => {
           <IoEllipsisHorizontalOutline size={24} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-48 p-2">
+      <DropdownMenuContent align="start" className="w-48 p-2">
         <DropdownMenuItem asChild>
           <Link href="/profile" className="flex items-center space-x-2">
             <span>Profile</span>

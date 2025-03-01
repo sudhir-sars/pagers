@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,11 +8,258 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  googleId  String   @unique
-  email     String   @unique
-  name      String?
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String       @id @default(uuid())
+  userId    String       @unique
+  email     String       @unique
+  name      String
+  image     String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  profile   UserProfile?
+}
+
+model Poll {
+  id       String   @id @default(uuid())
+  postId   Int      @unique
+  post     Post     @relation("PostPoll", fields: [postId], references: [id])
+  question String
+  options  String[]
+}
+
+model Post {
+  id                  Int          @id @default(autoincrement())
+  brief               String
+  extendedDescription String
+  likes               Int          @default(0)
+  authorId            String
+  author              UserProfile  @relation(fields: [authorId], references: [id])
+  comments            Comment[]
+  media               Media[]
+  poll                Poll?        @relation("PostPoll")
+  sharedMessages      Message[]    @relation("PostSharedMessages")
+  actions             PostAction[]
+  isEditorsChoice     Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model UserProfile {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [userId])
+  image      String
+  email      String
+  name       String
+  title      String
+  university String
+  bio        String
+  location   String
+  github     String
+  codeforces String
+  alias      Alias?
+  following  Follow[] @relation("Follower") // Users this profile follows
+  followers  Follow[] @relation("Followed")
+
+  posts                    Post[]
+  education                Degree[]
+  experiences              Experience[]
+  skills                   String[]
+  projects                 ProjectProfile[] // Owned projects (as owner)
+  contributedProjects      ProjectProfile[]          @relation("ProjectContributors")
+  ledProjects              ProjectProfile[]          @relation("ProjectLeadRelation")
+  comments                 Comment[] // Reverse relation for Comment.author
+  replies                  Reply[] // Reverse relation for Reply.author
+  conversationParticipants ConversationParticipant[] @relation("UserProfileConversations")
+  sentMessages             Message[]                 @relation("UserProfileSentMessages")
+  postActions              PostAction[]
+  projectFollowing         ProjectFollow[]           @relation("ProjectFollower")
+  ProjectFollow            ProjectFollow[]
+}
+
+model Comment {
+  id        Int         @id @default(autoincrement())
+  text      String
+  likes     Int         @default(0)
+  authorId  String
+  author    UserProfile @relation(fields: [authorId], references: [id])
+  postId    Int
+  post      Post        @relation(fields: [postId], references: [id])
+  replies   Reply[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Reply {
+  id        Int         @id @default(autoincrement())
+  text      String
+  likes     Int         @default(0)
+  authorId  String
+  author    UserProfile @relation(fields: [authorId], references: [id])
+  commentId Int
+  comment   Comment     @relation(fields: [commentId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Degree {
+  id            String      @id @default(uuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+  degreeName    String
+  institution   String
+  startDate     DateTime
+  endDate       DateTime?
+  description   String
+}
+
+model Experience {
+  id            String      @id @default(uuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+  title         String
+  company       String
+  startDate     DateTime
+  endDate       DateTime?
+  description   String
+}
+
+model ProjectFollow {
+  followerId    String
+  projectId     String
+  follower      UserProfile    @relation("ProjectFollower", fields: [followerId], references: [id])
+  project       ProjectProfile @relation("ProjectFollowed", fields: [projectId], references: [id])
+  UserProfile   UserProfile?   @relation(fields: [userProfileId], references: [id])
+  userProfileId String?
+
+  @@id([followerId, projectId]) // Composite primary key
+}
+
+model ProjectProfile {
+  id              String          @id @default(uuid())
+  image           String?
+  name            String
+  projectLeadId   String
+  projectLead     UserProfile     @relation("ProjectLeadRelation", fields: [projectLeadId], references: [id])
+  brief           String
+  description     String
+  github          String?
+  liveLink        String?
+  techStack       String[]
+  followers       ProjectFollow[] @relation("ProjectFollowed")
+  startDate       DateTime
+  endDate         DateTime?
+  status          String
+  tags            String[]
+  media           Media[]
+  ownerId         String
+  owner           UserProfile     @relation(fields: [ownerId], references: [id])
+  contributors    UserProfile[]   @relation("ProjectContributors")
+  isEditorsChoice Boolean         @default(false)
+}
+
+model Follow {
+  followerId String
+  followedId String
+  follower   UserProfile @relation("Follower", fields: [followerId], references: [id])
+  followed   UserProfile @relation("Followed", fields: [followedId], references: [id])
+
+  @@id([followerId, followedId]) // Composite primary key
+}
+
+model Media {
+  id        String          @id @default(uuid())
+  url       String
+  type      MediaType
+  altText   String?
+  order     Int?
+  post      Post?           @relation(fields: [postId], references: [id])
+  postId    Int?
+  project   ProjectProfile? @relation(fields: [projectId], references: [id])
+  projectId String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  GIF
+}
+
+model Alias {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  userId      String      @unique
+  userProfile UserProfile @relation(fields: [userId], references: [id])
+}
+
+//////////////////////////////////
+// Messaging Models
+//////////////////////////////////
+
+enum ConversationType {
+  ONE_ON_ONE
+  GROUP
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  type         ConversationType          @default(ONE_ON_ONE)
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  userProfile    UserProfile  @relation("UserProfileConversations", fields: [userId], references: [userId])
+  userId         String
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  FILE
+  POST_SHARE
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  sender         UserProfile  @relation("UserProfileSentMessages", fields: [senderId], references: [id])
+  senderId       String
+  type           MessageType  @default(TEXT)
+  content        String?
+  post           Post?        @relation("PostSharedMessages", fields: [postId], references: [id])
+  postId         Int?
+  mediaUrl       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum PostActionType {
+  LIKED
+  SAVED
+  COMMENTED
+  SHARED
+  REPOSTED
+}
+
+model PostAction {
+  id            String         @id @default(uuid())
+  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id])
+  userProfileId String
+  post          Post           @relation(fields: [postId], references: [id])
+  postId        Int
+  actionType    PostActionType
+  createdAt     DateTime       @default(now())
 }
