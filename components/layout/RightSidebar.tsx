@@ -1,13 +1,20 @@
 'use client';
 import React from 'react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+
+import { ShineBorder } from '../magicui/shine-border';
 
 const RightSidebar = () => {
+  const theme = useTheme();
   return (
     <>
-      <aside className="w-[300px] fixed right-[calc((100vw-76vw)/2)] top-[6.5rem]">
-        <Card>
+      <aside className="w-[300px] fixed right-[calc((100vw-76vw)/2)] top-[6.5rem] ">
+        <Card className="relative overflow-hidden">
+          <ShineBorder
+            borderWidth={1.2}
+            shineColor={theme.theme === 'dark' ? 'white' : 'black'}
+          />
           <CardHeader>
             <CardTitle>Featured Project 1</CardTitle>
           </CardHeader>

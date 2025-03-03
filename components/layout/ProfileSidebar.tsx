@@ -2,13 +2,22 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
-import { Home, Compass, Folder, Star, User, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Home,
+  Compass,
+  Folder,
+  Star,
+  User,
+  Settings,
+  Plus,
+} from 'lucide-react';
 
 interface ProfileSidebarProps {
   onFeedTypeChange: (
     feedType: 'home' | 'following' | 'projects' | 'editors-choice'
   ) => void;
-  onViewChange: (view: 'profile' | 'settings') => void;
+  onViewChange: (view: 'profile' | 'settings' | 'project-create') => void;
 }
 
 const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
@@ -17,6 +26,16 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 }) => {
   return (
     <aside className="w-[300px] fixed left-[calc((100vw-76vw)/2)] top-[6.5rem] bottom-10 z-50 flex flex-col">
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={() => onViewChange('project-create')}
+        >
+          <Plus size={20} className="mr-2" />
+          Create a Project
+        </Button>
+      </div>
       <nav className="flex flex-col space-y-2 items-start border-r">
         <div
           onClick={() => onFeedTypeChange('home')}
@@ -25,7 +44,6 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           <Home size={28} className="mr-3" />
           <span className="text-lg font-medium">Home</span>
         </div>
-
         <div
           onClick={() => onFeedTypeChange('following')}
           className="flex items-center hover:bg-accent hover:text-accent-foreground rounded-full px-3 py-3 pl-5 pr-14 cursor-pointer"

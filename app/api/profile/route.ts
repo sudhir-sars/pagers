@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     const userProfile = await prisma.userProfile.findUnique({
       where: { userId },
       include: {
-        alias: true,
         posts: {
           include: {
             author: true,

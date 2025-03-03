@@ -5,11 +5,12 @@ import ProfileSidebar from '@/components/layout/ProfileSidebar';
 import RightSidebar from '@/components/layout/RightSidebar';
 import ComposePost from '@/components/feed/ComposePost';
 import FeedPost from '@/components/feed/FeedPost';
+import ComposeProject from '@/components/project/ComposeProject';
 import { IPost } from '@/lib/types';
 import ProfileView from '@/components/profile/profile';
+import NotificationsFeed from '@/components/notifications/NotificationsDropdown';
 
 export default function FeedPage() {
-  // Helper functions to get token from localStorage
   const getLocalStorageItem = (key: string) =>
     typeof window !== 'undefined' ? localStorage.getItem(key) : null;
   const getToken = () => getLocalStorageItem('JWT_token');
@@ -20,24 +21,20 @@ export default function FeedPage() {
     window.location.href = '/login';
   };
 
-  // Authentication state
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Feed state
   const [posts, setPosts] = useState<IPost[]>([]);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [feedType, setFeedType] = useState<
-    'home' | 'discover' | 'following' | 'projects' | 'editors-choice'
+    'home' | 'following' | 'projects' | 'editors-choice'
   >('home');
 
-  // Current view: 'feed', 'profile', or 'settings'
   const [currentView, setCurrentView] = useState<
-    'feed' | 'profile' | 'settings'
+    'feed' | 'profile' | 'settings' | 'project-create' | 'notifications'
   >('feed');
 
-  // On mount: Check URL for token and validate authentication
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const jwtToken = urlParams.get('JWT_token');
@@ -54,14 +51,12 @@ export default function FeedPage() {
     }
   }, []);
 
-  // Fetch posts if in feed view
   useEffect(() => {
     if (isAuthorized && currentView === 'feed') {
       fetchPosts(1, feedType);
     }
   }, [isAuthorized, currentView, feedType]);
 
-  // Function to fetch posts from the API
   const fetchPosts = async (pageNumber: number, feedType: string) => {
     const token = getToken();
     try {
@@ -89,7 +84,6 @@ export default function FeedPage() {
     }
   };
 
-  // Handle new post creation
   const handleNewPostSubmit = async (postData: {
     content: string;
     media?: {
@@ -118,14 +112,16 @@ export default function FeedPage() {
     }
   };
 
-  // Handler for loading more posts
+  const handleNewProjectSubmit = () => {
+    setCurrentView('feed'); // Return to feed view after submission
+  };
+
   const handleLoadMore = () => {
     const nextPage = page + 1;
     fetchPosts(nextPage, feedType);
     setPage(nextPage);
   };
 
-  // Handler for changing feed type
   const handleFeedTypeChange = (
     newFeedType: 'home' | 'following' | 'projects' | 'editors-choice'
   ) => {
@@ -137,8 +133,9 @@ export default function FeedPage() {
     fetchPosts(1, newFeedType);
   };
 
-  // Handler for changing view
-  const handleViewChange = (newView: 'profile' | 'settings') => {
+  const handleViewChange = (
+    newView: 'profile' | 'settings' | 'project-create' | 'notifications'
+  ) => {
     setCurrentView(newView);
   };
 
@@ -147,12 +144,14 @@ export default function FeedPage() {
 
   return (
     <>
-      <Navbar />
+      <Navbar onViewChange={handleViewChange} />
       <ProfileSidebar
         onFeedTypeChange={handleFeedTypeChange}
         onViewChange={handleViewChange}
       />
-      {currentView === 'feed' && <RightSidebar />}
+      {(currentView === 'feed' || currentView === 'notifications') && (
+        <RightSidebar />
+      )}
       <div className="w-[75vw] mx-auto mt-6 relative">
         <main className="ml-[calc(300px+1rem)] mr-[calc(300px+1rem)] mt-[6.5rem]">
           {currentView === 'feed' && (
@@ -182,8 +181,12 @@ export default function FeedPage() {
           {currentView === 'profile' && (
             <ProfileView token={getToken() as string} />
           )}
+          {currentView === 'notifications' && <NotificationsFeed />}
           {currentView === 'settings' && (
             <div>Settings view coming soon...</div>
+          )}
+          {currentView === 'project-create' && (
+            <ComposeProject onProjectSubmit={handleNewProjectSubmit} />
           )}
         </main>
       </div>

@@ -8,30 +8,33 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const alias = searchParams.get('alias');
 
-  if (!alias) {
+  // Validate the alias: must be provided and not empty or whitespace-only
+  if (!alias || alias.trim() === '') {
     return NextResponse.json(
       {
         success: false,
         status: 400,
-        statusText: 'No alias provided',
+        statusText: 'Invalid alias provided',
       },
       { status: 400 }
     );
   }
 
   try {
-    // Query the Alias model to check if the alias already exists
-    const existingAlias = await prisma.alias.findUnique({
-      where: { name: alias },
+    // Query the UserProfile model to check if the alias already exists
+    const existingProfile = await prisma.userProfile.findUnique({
+      where: { alias: alias },
     });
 
-    if (existingAlias) {
+    // If a profile with this alias exists, it's taken
+    if (existingProfile) {
       return NextResponse.json({
         success: true,
         isAvailable: false,
         message: 'Alias is already taken',
       });
     } else {
+      // If no profile is found, the alias is available
       return NextResponse.json({
         success: true,
         isAvailable: true,
@@ -39,6 +42,7 @@ export async function GET(req: NextRequest) {
       });
     }
   } catch (error: any) {
+    // Handle any database or server errors
     console.error('Error checking alias uniqueness:', error);
     return NextResponse.json(
       {

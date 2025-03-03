@@ -27,78 +27,92 @@ model Poll {
 }
 
 model Post {
-  id                  Int          @id @default(autoincrement())
+  id                  Int             @id @default(autoincrement())
   brief               String
   extendedDescription String
-  likes               Int          @default(0)
+  likes               Int             @default(0)
   authorId            String
-  author              UserProfile  @relation(fields: [authorId], references: [id])
+  author              UserProfile     @relation(fields: [authorId], references: [id])
+  projectId           String? // Added: Optional link to a project
+  project             ProjectProfile? @relation(fields: [projectId], references: [id])
   comments            Comment[]
   media               Media[]
-  poll                Poll?        @relation("PostPoll")
-  sharedMessages      Message[]    @relation("PostSharedMessages")
+  poll                Poll?           @relation("PostPoll")
+  sharedMessages      Message[]       @relation("PostSharedMessages")
   actions             PostAction[]
-  isEditorsChoice     Boolean      @default(false)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  isEditorsChoice     Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  Notification        Notification[]
+
+  @@index([authorId]) // Added index for performance
+  @@index([projectId]) // Added index for performance
 }
 
 model UserProfile {
-  id         String   @id @default(uuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [userId])
-  image      String
-  email      String
-  name       String
-  title      String
-  university String
-  bio        String
-  location   String
-  github     String
-  codeforces String
-  alias      Alias?
-  following  Follow[] @relation("Follower") // Users this profile follows
-  followers  Follow[] @relation("Followed")
-
+  id                       String                    @id @default(uuid())
+  userId                   String                    @unique
+  user                     User                      @relation(fields: [userId], references: [userId])
+  image                    String
+  email                    String
+  name                     String
+  title                    String
+  university               String
+  bio                      String
+  location                 String
+  github                   String
+  codeforces               String
+  alias                    String?                   @unique
+  following                Follow[]                  @relation("Follower")
+  followers                Follow[]                  @relation("Followed")
   posts                    Post[]
   education                Degree[]
   experiences              Experience[]
   skills                   String[]
-  projects                 ProjectProfile[] // Owned projects (as owner)
+  projects                 ProjectProfile[]
   contributedProjects      ProjectProfile[]          @relation("ProjectContributors")
   ledProjects              ProjectProfile[]          @relation("ProjectLeadRelation")
-  comments                 Comment[] // Reverse relation for Comment.author
-  replies                  Reply[] // Reverse relation for Reply.author
+  comments                 Comment[]
+  replies                  Reply[]
   conversationParticipants ConversationParticipant[] @relation("UserProfileConversations")
   sentMessages             Message[]                 @relation("UserProfileSentMessages")
   postActions              PostAction[]
   projectFollowing         ProjectFollow[]           @relation("ProjectFollower")
-  ProjectFollow            ProjectFollow[]
+  notificationsReceived    Notification[]            @relation("UserProfileNotificationsReceived")
+  notificationsSent        Notification[]            @relation("UserProfileNotificationsSent")
 }
 
 model Comment {
-  id        Int         @id @default(autoincrement())
-  text      String
-  likes     Int         @default(0)
-  authorId  String
-  author    UserProfile @relation(fields: [authorId], references: [id])
-  postId    Int
-  post      Post        @relation(fields: [postId], references: [id])
-  replies   Reply[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id           Int            @id @default(autoincrement())
+  text         String
+  likes        Int            @default(0)
+  authorId     String
+  author       UserProfile    @relation(fields: [authorId], references: [id])
+  postId       Int
+  post         Post           @relation(fields: [postId], references: [id])
+  replies      Reply[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Notification Notification[]
+
+  @@index([authorId]) // Added index for performance
+  @@index([postId]) // Added index for performance
 }
 
 model Reply {
-  id        Int         @id @default(autoincrement())
-  text      String
-  likes     Int         @default(0)
-  authorId  String
-  author    UserProfile @relation(fields: [authorId], references: [id])
-  commentId Int
-  comment   Comment     @relation(fields: [commentId], references: [id])
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id           Int            @id @default(autoincrement())
+  text         String
+  likes        Int            @default(0)
+  authorId     String
+  author       UserProfile    @relation(fields: [authorId], references: [id])
+  commentId    Int
+  comment      Comment        @relation(fields: [commentId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Notification Notification[]
+
+  @@index([authorId]) // Added index for performance
+  @@index([commentId]) // Added index for performance
 }
 
 model Degree {
@@ -110,6 +124,8 @@ model Degree {
   startDate     DateTime
   endDate       DateTime?
   description   String
+
+  @@index([userProfileId]) // Added index for performance
 }
 
 model Experience {
@@ -121,17 +137,19 @@ model Experience {
   startDate     DateTime
   endDate       DateTime?
   description   String
+
+  @@index([userProfileId]) // Added index for performance
 }
 
 model ProjectFollow {
-  followerId    String
-  projectId     String
-  follower      UserProfile    @relation("ProjectFollower", fields: [followerId], references: [id])
-  project       ProjectProfile @relation("ProjectFollowed", fields: [projectId], references: [id])
-  UserProfile   UserProfile?   @relation(fields: [userProfileId], references: [id])
-  userProfileId String?
+  followerId String
+  projectId  String
+  follower   UserProfile    @relation("ProjectFollower", fields: [followerId], references: [id])
+  project    ProjectProfile @relation("ProjectFollowed", fields: [projectId], references: [id])
 
   @@id([followerId, projectId]) // Composite primary key
+  @@index([followerId]) // Added index for performance
+  @@index([projectId]) // Added index for performance
 }
 
 model ProjectProfile {
@@ -155,6 +173,11 @@ model ProjectProfile {
   owner           UserProfile     @relation(fields: [ownerId], references: [id])
   contributors    UserProfile[]   @relation("ProjectContributors")
   isEditorsChoice Boolean         @default(false)
+  posts           Post[] // Added relation to posts
+  Notification    Notification[]
+
+  @@index([ownerId]) // Added index for performance
+  @@index([projectLeadId]) // Added index for performance
 }
 
 model Follow {
@@ -164,6 +187,8 @@ model Follow {
   followed   UserProfile @relation("Followed", fields: [followedId], references: [id])
 
   @@id([followerId, followedId]) // Composite primary key
+  @@index([followerId]) // Added index for performance
+  @@index([followedId]) // Added index for performance
 }
 
 model Media {
@@ -178,6 +203,9 @@ model Media {
   projectId String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+
+  @@index([postId]) // Added index for performance
+  @@index([projectId]) // Added index for performance
 }
 
 enum MediaType {
@@ -185,13 +213,6 @@ enum MediaType {
   VIDEO
   AUDIO
   GIF
-}
-
-model Alias {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  userId      String      @unique
-  userProfile UserProfile @relation(fields: [userId], references: [id])
 }
 
 //////////////////////////////////
@@ -221,6 +242,8 @@ model ConversationParticipant {
   lastReadAt     DateTime?
 
   @@unique([conversationId, userId])
+  @@index([userId]) // Added index for performance
+  @@index([conversationId]) // Added index for performance
 }
 
 enum MessageType {
@@ -244,6 +267,9 @@ model Message {
   mediaUrl       String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  @@index([conversationId]) // Added index for performance
+  @@index([senderId]) // Added index for performance
 }
 
 enum PostActionType {
@@ -261,5 +287,49 @@ model PostAction {
   post          Post           @relation(fields: [postId], references: [id])
   postId        Int
   actionType    PostActionType
+  actionValue   String? // Added: Optional value for actions (e.g., comment text)
   createdAt     DateTime       @default(now())
+
+  @@index([userProfileId]) // Added index for performance
+  @@index([postId]) // Added index for performance
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String
+  recipient   UserProfile      @relation("UserProfileNotificationsReceived", fields: [recipientId], references: [id])
+  senderId    String?
+  sender      UserProfile?     @relation("UserProfileNotificationsSent", fields: [senderId], references: [id])
+  type        NotificationType
+  message     String
+  postId      Int?
+  post        Post?            @relation(fields: [postId], references: [id])
+  commentId   Int?
+  comment     Comment?         @relation(fields: [commentId], references: [id])
+  replyId     Int?
+  reply       Reply?           @relation(fields: [replyId], references: [id])
+  projectId   String?
+  project     ProjectProfile?  @relation(fields: [projectId], references: [id])
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@index([recipientId])
+  @@index([senderId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([replyId])
+  @@index([projectId])
+}
+
+enum NotificationType {
+  FOLLOW
+  POST_LIKE
+  COMMENT_LIKE
+  REPLY_LIKE
+  POST_COMMENT
+  COMMENT_REPLY
+  MENTION
+  PROJECT_INVITE
+  PROJECT_UPDATE
+  SYSTEM
 }
