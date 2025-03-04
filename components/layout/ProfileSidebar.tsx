@@ -25,17 +25,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   onViewChange,
 }) => {
   return (
-    <aside className="w-[300px] fixed left-[calc((100vw-76vw)/2)] top-[6.5rem] bottom-10 z-50 flex flex-col">
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={() => onViewChange('project-create')}
-        >
-          <Plus size={20} className="mr-2" />
-          Create a Project
-        </Button>
-      </div>
+    <aside className="w-[300px] fixed left-[calc((100vw-76vw)/2)] top-[10rem] bottom-10 z-50 flex flex-col">
       <nav className="flex flex-col space-y-2 items-start border-r">
         <div
           onClick={() => onFeedTypeChange('home')}
@@ -43,6 +33,14 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
         >
           <Home size={28} className="mr-3" />
           <span className="text-lg font-medium">Home</span>
+        </div>
+
+        <div
+          className="flex items-center hover:bg-accent hover:text-accent-foreground rounded-full px-3 py-3 pl-5 pr-14 cursor-pointer"
+          onClick={() => onViewChange('project-create')}
+        >
+          <Plus size={28} className="mr-3" />
+          Create a Project
         </div>
         <div
           onClick={() => onFeedTypeChange('following')}
@@ -80,20 +78,6 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           <span className="text-lg font-medium">Settings</span>
         </div>
       </nav>
-      <div className="mt-auto pt-4">
-        <Card className="p-3">
-          <CardContent className="flex items-center">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="/path/to/profile.jpg" alt="Profile image" />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div className="ml-3">
-              <p className="font-medium">John Doe</p>
-              <p className="text-sm text-gray-500">@johndoe</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </aside>
   );
 };

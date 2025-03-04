@@ -1,26 +1,69 @@
+// app/components/feed/FeedPost.tsx
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FiMessageSquare } from 'react-icons/fi';
-import { IPost } from '@/lib/types';
-import PostActions from './PostActions'; // Adjust the path as needed
+import { IPost, IUser } from '@/lib/types';
+import PostActions from './PostActions';
 import Image from 'next/image';
+
 interface FeedPostProps {
   post: IPost;
+  onMessageTarget: (target: IUser) => void;
 }
 
-const FeedPost: React.FC<FeedPostProps> = ({ post }) => {
+const FeedPost: React.FC<FeedPostProps> = ({ post, onMessageTarget }) => {
   const { id, author, brief, extendedDescription, media, poll } = post;
   const [isFollowing, setIsFollowing] = useState(false);
-  const handleFollowToggle = () => setIsFollowing((prev) => !prev);
+
+  const getToken = () => localStorage.getItem('JWT_token');
+
+  // Follow/unfollow logic remains unchanged
+  const handleFollowToggle = async () => {
+    const token = getToken();
+    if (!token) return;
+    if (!isFollowing) {
+      try {
+        const res = await fetch('/api/follow', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ recipientId: author.id }),
+        });
+        if (!res.ok) throw new Error('Failed to follow user');
+        setIsFollowing(true);
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      try {
+        const res = await fetch(`/api/unfollow?recipientId=${author.id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error('Failed to unfollow user');
+        setIsFollowing(false);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  // Instead of sending a message here, trigger the callback with the author as target.
+  const handleOpenMessages = () => {
+    onMessageTarget(author);
+  };
 
   return (
     <div className="mb-4">
       <Card className="mb-2">
         <CardHeader>
           <div className="flex items-center justify-between">
-            {/* Left side: Avatar, Name, and Follow Button */}
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={author.image} alt="User Profile" />
@@ -39,18 +82,18 @@ const FeedPost: React.FC<FeedPostProps> = ({ post }) => {
                 <p className="text-sm text-muted-foreground">{author.title}</p>
               </div>
             </div>
-            {/* Right side: Messaging Icon */}
             <div className="flex items-center">
-              <button className="hover:text-blue-600">
+              <button
+                className="hover:text-blue-600"
+                onClick={handleOpenMessages}
+              >
                 <FiMessageSquare size={20} />
               </button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Post text content */}
           <p className="text-sm mb-4">{extendedDescription || brief}</p>
-          {/* Media Section */}
           {media && media.length > 0 && (
             <div className="grid grid-cols-2 gap-2 mb-4">
               {media.map((item) => (
@@ -59,7 +102,6 @@ const FeedPost: React.FC<FeedPostProps> = ({ post }) => {
                     <Image
                       height={300}
                       width={300}
-                      // width={auto}
                       src={item.url}
                       alt={item.altText || 'Media'}
                       className="object-cover w-full h-48 rounded-md"
@@ -77,7 +119,6 @@ const FeedPost: React.FC<FeedPostProps> = ({ post }) => {
               ))}
             </div>
           )}
-          {/* Poll Section */}
           {poll && (
             <div className="border p-4 rounded-md mb-4">
               <h4 className="font-semibold mb-2">{poll.question}</h4>
@@ -93,7 +134,6 @@ const FeedPost: React.FC<FeedPostProps> = ({ post }) => {
               </ul>
             </div>
           )}
-          {/* Post Actions & Comments */}
           <PostActions post={post} />
         </CardContent>
       </Card>

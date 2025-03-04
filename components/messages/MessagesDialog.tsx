@@ -1,4 +1,6 @@
+// app/components/messages/MessagesDialog.tsx
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import {
   Dialog,
@@ -15,17 +17,28 @@ import MessageWindow from './components/MessageWindow';
 import MessageInput from './components/MessageInput';
 import Image from 'next/image';
 
-const MessagesDialog: React.FC = () => {
+interface MessagesDialogProps {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  initialTarget?: IUser;
+}
+
+const MessagesDialog: React.FC<MessagesDialogProps> = ({
+  open,
+  setOpen,
+  initialTarget,
+}) => {
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<IConversation | null>(null);
-  const [pendingRecipient, setPendingRecipient] = useState<IUser | null>(null);
+  const [pendingRecipient, setPendingRecipient] = useState<IUser | null>(
+    initialTarget || null
+  );
   const [newMessage, setNewMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<IUser[]>([]);
 
-  // Retrieve token and current user id from localStorage
   const getToken = () =>
     typeof window !== 'undefined' ? localStorage.getItem('JWT_token') : null;
   const currentUserId =
@@ -45,7 +58,18 @@ const MessagesDialog: React.FC = () => {
       if (!res.ok) throw new Error('Failed to fetch conversations');
       const data = await res.json();
       setConversations(data.conversations);
-      if (data.conversations.length > 0) {
+      // If there's an initial target, check if a conversation already exists
+      if (initialTarget) {
+        const existingConv = data.conversations.find((conv: IConversation) =>
+          conv.participants.some((p) => p.userId === initialTarget.userId)
+        );
+        if (existingConv) {
+          setSelectedConversation(existingConv);
+          setPendingRecipient(null);
+        } else {
+          setSelectedConversation(null);
+        }
+      } else if (data.conversations.length > 0 && !pendingRecipient) {
         setSelectedConversation(data.conversations[0]);
       }
     } catch (error) {
@@ -54,10 +78,29 @@ const MessagesDialog: React.FC = () => {
     setLoading(false);
   };
 
-  // Remove fetchConversations from useEffect
+  // When the dialog opens, fetch conversations.
   useEffect(() => {
-    fetchConversations();
-  }, []);
+    if (open) {
+      fetchConversations();
+    }
+  }, [open]);
+
+  // If initialTarget changes, update pendingRecipient and check for an existing conversation.
+  useEffect(() => {
+    if (initialTarget) {
+      // Check if a conversation already exists with the initial target.
+      const existingConv = conversations.find((conv) =>
+        conv.participants.some((p) => p.userId === initialTarget.userId)
+      );
+      if (existingConv) {
+        setSelectedConversation(existingConv);
+        setPendingRecipient(null);
+      } else {
+        setPendingRecipient(initialTarget);
+        setSelectedConversation(null);
+      }
+    }
+  }, [initialTarget, conversations]);
 
   // Search for users when query changes
   useEffect(() => {
@@ -89,10 +132,18 @@ const MessagesDialog: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Handle selecting a user from search results
+  // Handle selecting a user from search results. Check if an existing conversation exists.
   const handleSelectUser = (user: IUser) => {
-    setPendingRecipient(user);
-    setSelectedConversation(null);
+    const existingConv = conversations.find((conv) =>
+      conv.participants.some((p) => p.userId === user.userId)
+    );
+    if (existingConv) {
+      setSelectedConversation(existingConv);
+      setPendingRecipient(null);
+    } else {
+      setPendingRecipient(user);
+      setSelectedConversation(null);
+    }
     setSearchQuery('');
     setSearchResults([]);
   };
@@ -103,10 +154,10 @@ const MessagesDialog: React.FC = () => {
     setPendingRecipient(null);
   };
 
-  // Simplified: Single endpoint POST to send message (or create new conversation if needed)
+  // Send a message (or create a new conversation if needed)
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    const token = getToken(); // Gets the JWT from local storage
+    const token = getToken();
     if (!token) return;
 
     const payload: {
@@ -116,19 +167,15 @@ const MessagesDialog: React.FC = () => {
     } = {
       content: newMessage.trim(),
     };
-    console.log(selectedConversation);
-    console.log(pendingRecipient);
 
     if (selectedConversation) {
       payload.conversationId = selectedConversation.id;
     } else if (pendingRecipient) {
       payload.recipientId = pendingRecipient.userId;
     }
-    console.log(payload);
 
     try {
       const res = await fetch('/api/messages', {
-        // Make sure endpoint matches your backend
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,6 +192,7 @@ const MessagesDialog: React.FC = () => {
           messages: [...selectedConversation.messages, data.message],
         });
       } else {
+        // New conversation created—add it to the list and select it.
         setConversations((prev) => [data.conversation, ...prev]);
         setSelectedConversation(data.conversation);
         setPendingRecipient(null);
@@ -154,11 +202,23 @@ const MessagesDialog: React.FC = () => {
       console.error(error);
     }
   };
+  useEffect(() => {
+    if (!open) {
+      setConversations([]);
+      setSelectedConversation(null);
+      setPendingRecipient(initialTarget || null);
+      setNewMessage('');
+      setLoading(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  }, [open, initialTarget]);
 
   return (
-    <Dialog onOpenChange={(open) => open && fetchConversations()}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <LuMessageSquareDot size={23} />
+        {/* Hidden trigger since we control open state externally */}
+        <button style={{ display: 'none' }} />
       </DialogTrigger>
       <DialogContent className="p-0 h-[74vh] w-[60vw]">
         <DialogHeader className="hidden">
@@ -180,12 +240,10 @@ const MessagesDialog: React.FC = () => {
             />
           </div>
           <div className="flex-1 flex flex-col p-4">
-            {/* Replace the "Conversation with" text with the user avatar and name */}
             <div className="mb-4 flex items-center">
               {selectedConversation || pendingRecipient ? (
                 <>
                   <div className="flex items-center mr-2">
-                    {/* Display Avatar */}
                     <Image
                       width={40}
                       height={40}
@@ -194,7 +252,7 @@ const MessagesDialog: React.FC = () => {
                           ? selectedConversation.participants.find(
                               (p) => p.userId !== currentUserId
                             )?.userProfile.image
-                          : pendingRecipient?.image || '/default-avatar.png' // Fallback to a default avatar if there's no image
+                          : pendingRecipient?.image || '/default-avatar.png'
                       }
                       alt={
                         selectedConversation
@@ -207,7 +265,6 @@ const MessagesDialog: React.FC = () => {
                     />
                   </div>
                   <div>
-                    {/* Display Name */}
                     <span className="font-bold text-lg">
                       {selectedConversation
                         ? selectedConversation.participants.find(
@@ -223,8 +280,6 @@ const MessagesDialog: React.FC = () => {
                 </p>
               )}
             </div>
-
-            {/* Message window and input remain unchanged */}
             {selectedConversation && (
               <MessageWindow
                 conversation={selectedConversation}

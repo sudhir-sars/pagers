@@ -4,10 +4,12 @@ import { ThemeToggle } from '../Theme/ThemeToggle';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { CiSearch } from 'react-icons/ci';
-import MessagesDialog from '../messages/MessagesDialog';
-import MoreDropdown from '@/components/navbar/MoreDropdown';
 import { IoNotificationsOutline } from 'react-icons/io5';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { FiMessageSquare } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { IUser } from '@/lib/types';
+// Import the ShadCN UI Avatar components
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 // Dummy notifications data
 const dummyNotifications = [
@@ -33,33 +35,46 @@ interface NavbarProps {
   onViewChange: (
     view: 'profile' | 'settings' | 'project-create' | 'notifications'
   ) => void;
+  onMessageClick: (target?: IUser) => void;
 }
 
-// Navigation links component
-const NavLinks = ({
-  onViewChange,
-}: {
-  onViewChange: NavbarProps['onViewChange'];
-}) => {
+// Utility functions to get the token from localStorage
+const getLocalStorageItem = (key: string) =>
+  typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+const getToken = () => getLocalStorageItem('JWT_token');
+
+const Navbar = ({ onViewChange, onMessageClick }: NavbarProps) => {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const token = getToken();
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch('/api/profile', {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        const data = await res.json();
+        setProfile(data.profile);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (token) {
+      fetchProfile();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
   const unreadCount = dummyNotifications.length;
 
-  return (
-    <>
-      <button
-        onClick={() => onViewChange('notifications')}
-        className="relative p-2 rounded-full hover:bg-gray-200"
-      >
-        <IoNotificationsOutline size={24} />
-        {unreadCount > 0 && <Badge count={unreadCount} />}
-      </button>
-      <MessagesDialog />
-      <MoreDropdown />
-      <ThemeToggle />
-    </>
-  );
-};
-
-const Navbar = ({ onViewChange }: NavbarProps) => {
   return (
     <header className="rounded-b-2xl border-r border-l fixed top-0 left-1/2 transform -translate-x-1/2 w-[75vw] flex items-center justify-between px-4 lg:px-6 h-14 border-b z-50 border-border/40 bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/50">
       {/* Logo and Link */}
@@ -76,7 +91,27 @@ const Navbar = ({ onViewChange }: NavbarProps) => {
 
       {/* Desktop Nav Links */}
       <nav className="hidden md:flex items-center space-x-6">
-        <NavLinks onViewChange={onViewChange} />
+        <button
+          onClick={() => onViewChange('notifications')}
+          className="relative p-2 rounded-full hover:bg-gray-200"
+        >
+          <IoNotificationsOutline size={24} />
+          {unreadCount > 0 && <Badge count={unreadCount} />}
+        </button>
+        <button
+          className="hover:text-blue-600"
+          onClick={() => onMessageClick()}
+        >
+          <FiMessageSquare size={20} />
+        </button>
+        {!loading && profile && profile.image && (
+          <Avatar className="w-8 h-8 shadow-lg">
+            <AvatarImage src={profile.image} alt="User Avatar" />
+            <AvatarFallback>U</AvatarFallback>
+          </Avatar>
+        )}
+        <ThemeToggle />
+        {/* ShadCN UI Avatar */}
       </nav>
 
       {/* Mobile Menu */}
@@ -101,7 +136,27 @@ const Navbar = ({ onViewChange }: NavbarProps) => {
         </SheetTrigger>
         <SheetContent>
           <nav className="flex flex-col space-y-4 mt-6">
-            <NavLinks onViewChange={onViewChange} />
+            {!loading && profile && profile.image && (
+              <Avatar className="w-8 h-8 shadow-lg">
+                <AvatarImage src={profile.image} alt="User Avatar" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+            )}
+            <button
+              onClick={() => onViewChange('notifications')}
+              className="relative p-2 rounded-full hover:bg-gray-200"
+            >
+              <IoNotificationsOutline size={24} />
+              {unreadCount > 0 && <Badge count={unreadCount} />}
+            </button>
+            <button
+              className="hover:text-blue-600"
+              onClick={() => onMessageClick()}
+            >
+              <FiMessageSquare size={20} />
+            </button>
+
+            <ThemeToggle />
           </nav>
         </SheetContent>
       </Sheet>

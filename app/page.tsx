@@ -1,3 +1,4 @@
+// app/pages/feed.tsx
 'use client';
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/navbar/Navbar';
@@ -6,8 +7,9 @@ import RightSidebar from '@/components/layout/RightSidebar';
 import ComposePost from '@/components/feed/ComposePost';
 import FeedPost from '@/components/feed/FeedPost';
 import ComposeProject from '@/components/project/ComposeProject';
-import { IPost } from '@/lib/types';
+import { IPost, IUser } from '@/lib/types';
 import ProfileView from '@/components/profile/profile';
+import MessagesDialog from '@/components/messages/MessagesDialog';
 import NotificationsFeed from '@/components/notifications/NotificationsDropdown';
 
 export default function FeedPage() {
@@ -34,6 +36,10 @@ export default function FeedPage() {
   const [currentView, setCurrentView] = useState<
     'feed' | 'profile' | 'settings' | 'project-create' | 'notifications'
   >('feed');
+
+  // New state to control the messages dialog and its target
+  const [messageTarget, setMessageTarget] = useState<IUser | null>(null);
+  const [isMessagesOpen, setIsMessagesOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -133,6 +139,14 @@ export default function FeedPage() {
     fetchPosts(1, newFeedType);
   };
 
+  // Callback for FeedPost message button
+  const handleMessageTarget = (target?: IUser) => {
+    if (target) {
+      setMessageTarget(target);
+    }
+    setIsMessagesOpen(true);
+  };
+
   const handleViewChange = (
     newView: 'profile' | 'settings' | 'project-create' | 'notifications'
   ) => {
@@ -144,7 +158,10 @@ export default function FeedPage() {
 
   return (
     <>
-      <Navbar onViewChange={handleViewChange} />
+      <Navbar
+        onMessageClick={handleMessageTarget}
+        onViewChange={handleViewChange}
+      />
       <ProfileSidebar
         onFeedTypeChange={handleFeedTypeChange}
         onViewChange={handleViewChange}
@@ -160,7 +177,13 @@ export default function FeedPage() {
               <section>
                 <div className="flex flex-col gap-4">
                   {posts.length > 0 ? (
-                    posts.map((post) => <FeedPost key={post.id} post={post} />)
+                    posts.map((post) => (
+                      <FeedPost
+                        key={post.id}
+                        post={post}
+                        onMessageTarget={handleMessageTarget}
+                      />
+                    ))
                   ) : (
                     <div>No posts available</div>
                   )}
@@ -190,6 +213,12 @@ export default function FeedPage() {
           )}
         </main>
       </div>
+      {/* Render the MessagesDialog and pass the target (if any) */}
+      <MessagesDialog
+        open={isMessagesOpen}
+        setOpen={setIsMessagesOpen}
+        initialTarget={messageTarget || undefined}
+      />
     </>
   );
 }
