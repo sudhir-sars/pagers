@@ -11,7 +11,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-export default function ProfileView({ token }: { token: string }) {
+interface ProfileViewProps {
+  isOwnProfile?: boolean;
+  id?: string;
+}
+
+export default function ProfileView({
+  isOwnProfile = true,
+  id,
+}: ProfileViewProps) {
+  const getToken = () => localStorage.getItem('JWT_token');
+  const token = getToken();
+
+  // If there is no id in params, we assume it's the logged in user's own profile.
   const [profile, setProfile] = useState<IUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEducationForm, setShowEducationForm] = useState(false);
@@ -20,12 +32,18 @@ export default function ProfileView({ token }: { token: string }) {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await fetch('/api/profile', {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const endpoint = !isOwnProfile
+          ? `/api/profile/?id=${id}`
+          : '/api/profile';
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        if (isOwnProfile) {
+          headers['id'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(endpoint, { headers });
         if (!res.ok) throw new Error('Failed to fetch profile');
         const data = await res.json();
         setProfile(data.profile);
@@ -36,7 +54,7 @@ export default function ProfileView({ token }: { token: string }) {
       }
     }
     fetchProfile();
-  }, [token]);
+  }, []);
 
   if (loading) return <div>Loading Profile...</div>;
   if (!profile) return <div>No profile data available</div>;
@@ -219,18 +237,23 @@ export default function ProfileView({ token }: { token: string }) {
           ) : (
             <div className="mt-4">
               <p>No education added yet.</p>
-              <Button
-                variant="ghost"
-                onClick={() => setShowEducationForm(true)}
-                className="mt-2"
-              >
-                Add Education
-              </Button>
-              {showEducationForm && (
-                <EducationForm
-                  onSubmit={handleAddEducation}
-                  onCancel={() => setShowEducationForm(false)}
-                />
+              {/* Only show add button if it is the user's own profile */}
+              {isOwnProfile && (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowEducationForm(true)}
+                    className="mt-2"
+                  >
+                    Add Education
+                  </Button>
+                  {showEducationForm && (
+                    <EducationForm
+                      onSubmit={handleAddEducation}
+                      onCancel={() => setShowEducationForm(false)}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
@@ -258,18 +281,22 @@ export default function ProfileView({ token }: { token: string }) {
           ) : (
             <div className="mt-4">
               <p>No experience added yet.</p>
-              <Button
-                variant="ghost"
-                onClick={() => setShowExperienceForm(true)}
-                className="mt-2"
-              >
-                Add Experience
-              </Button>
-              {showExperienceForm && (
-                <ExperienceForm
-                  onSubmit={handleAddExperience}
-                  onCancel={() => setShowExperienceForm(false)}
-                />
+              {isOwnProfile && (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowExperienceForm(true)}
+                    className="mt-2"
+                  >
+                    Add Experience
+                  </Button>
+                  {showExperienceForm && (
+                    <ExperienceForm
+                      onSubmit={handleAddExperience}
+                      onCancel={() => setShowExperienceForm(false)}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
@@ -277,7 +304,6 @@ export default function ProfileView({ token }: { token: string }) {
 
         {/* Your Posts */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Your Posts</h2>
           <div className="flex flex-col gap-6">
             {profile.posts && profile.posts.length > 0 ? (
               profile.posts.map((post) => {

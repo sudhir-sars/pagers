@@ -8,21 +8,10 @@ import { IoNotificationsOutline } from 'react-icons/io5';
 import { FiMessageSquare } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { IUser } from '@/lib/types';
-// Import the ShadCN UI Avatar components
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-
-// Dummy notifications data
-const dummyNotifications = [
-  { id: '1', message: 'Your order has been shipped!', time: '2 hrs ago' },
-  { id: '2', message: 'New comment on your post.', time: '3 hrs ago' },
-  { id: '3', message: 'You have a new follower.', time: '5 hrs ago' },
-  {
-    id: '4',
-    message: 'Your subscription is about to expire.',
-    time: '1 day ago',
-  },
-  { id: '5', message: 'Weekly digest is here!', time: '2 days ago' },
-];
+import { useNotifications } from '@/context/NotificationContext';
+import { useRouter, usePathname } from 'next/navigation';
+import { Button } from '../ui/button';
 
 // Badge component to show unread count
 const Badge = ({ count }: { count: number }) => (
@@ -32,21 +21,46 @@ const Badge = ({ count }: { count: number }) => (
 );
 
 interface NavbarProps {
-  onViewChange: (
+  onViewChange?: (
     view: 'profile' | 'settings' | 'project-create' | 'notifications'
   ) => void;
-  onMessageClick: (target?: IUser) => void;
+  onMessageClick?: (target?: IUser) => void;
+  onFeedTypeChange?: (
+    feedType: 'home' | 'following' | 'projects' | 'editors-choice'
+  ) => void;
+  searchInput?: string;
+  setSearchInput?: (input: string) => void;
 }
 
-// Utility functions to get the token from localStorage
 const getLocalStorageItem = (key: string) =>
   typeof window !== 'undefined' ? localStorage.getItem(key) : null;
 const getToken = () => getLocalStorageItem('JWT_token');
 
-const Navbar = ({ onViewChange, onMessageClick }: NavbarProps) => {
+const Navbar = ({
+  onViewChange,
+  onMessageClick,
+  onFeedTypeChange,
+  searchInput,
+  setSearchInput,
+}: NavbarProps) => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
   const token = getToken();
+  const { unreadCount } = useNotifications();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const authorized = (callback: () => void) => {
+    if (token) {
+      if (pathname !== '/') {
+        router.push('/');
+      }
+      callback();
+    } else {
+      router.push('/login');
+    }
+  };
 
   useEffect(() => {
     async function fetchProfile() {
@@ -73,48 +87,62 @@ const Navbar = ({ onViewChange, onMessageClick }: NavbarProps) => {
     }
   }, [token]);
 
-  const unreadCount = dummyNotifications.length;
+  const handleNotificationClick = () => {
+    authorized(() => onViewChange?.('notifications'));
+  };
+
+  const handleMessageClick = () => {
+    authorized(() => onMessageClick?.());
+  };
 
   return (
     <header className="rounded-b-2xl border-r border-l fixed top-0 left-1/2 transform -translate-x-1/2 w-[75vw] flex items-center justify-between px-4 lg:px-6 h-14 border-b z-50 border-border/40 bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/50">
-      {/* Logo and Link */}
-      <Link href="/" className="flex items-center" prefetch={false}>
+      <div
+        onClick={() => authorized(() => onFeedTypeChange?.('home'))}
+        className="flex items-center cursor-pointer"
+      >
         <div className="h-8 w-8">{/* Insert your logo image here */}</div>
         <span className="text-xl font-bold ml-3 md:inline">Pager</span>
-      </Link>
-
-      {/* Search Input */}
-      <div className="flex items-center justify-start w-[25vw] ml-36 shadow-inner text-sm px-4 border rounded-xl border-border">
-        <CiSearch size={20} />
-        <Input className="border-none outline-none shadow-none focus-visible:ring-0 py-0 h-8" />
       </div>
 
-      {/* Desktop Nav Links */}
+      <div className="flex items-center justify-start w-[25vw] ml-36 shadow-inner text-sm px-4 border rounded-xl border-border">
+        <button type="submit" aria-label="Search">
+          <CiSearch size={20} />
+        </button>
+        <Input
+          disabled={!searchInput || !setSearchInput}
+          value={searchInput}
+          onChange={(e) => setSearchInput && setSearchInput(e.target.value)}
+          className="border-none outline-none shadow-none focus-visible:ring-0 py-0 h-8"
+          placeholder="Search..."
+        />
+      </div>
+
       <nav className="hidden md:flex items-center space-x-6">
         <button
-          onClick={() => onViewChange('notifications')}
+          onClick={handleNotificationClick}
           className="relative p-2 rounded-full hover:bg-gray-200"
         >
           <IoNotificationsOutline size={24} />
           {unreadCount > 0 && <Badge count={unreadCount} />}
         </button>
-        <button
-          className="hover:text-blue-600"
-          onClick={() => onMessageClick()}
-        >
+        <button className="hover:text-blue-600" onClick={handleMessageClick}>
           <FiMessageSquare size={20} />
         </button>
-        {!loading && profile && profile.image && (
-          <Avatar className="w-8 h-8 shadow-lg">
-            <AvatarImage src={profile.image} alt="User Avatar" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
-        )}
+        {!loading &&
+          (token && profile && profile.image ? (
+            <Avatar className="w-8 h-8 shadow-lg">
+              <AvatarImage src={profile.image} alt="User Avatar" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+          ) : (
+            <Link href="/login">
+              <Button variant={'outline'}>Signup</Button>
+            </Link>
+          ))}
         <ThemeToggle />
-        {/* ShadCN UI Avatar */}
       </nav>
 
-      {/* Mobile Menu */}
       <Sheet>
         <SheetTrigger asChild>
           <button className="md:hidden">
@@ -136,14 +164,19 @@ const Navbar = ({ onViewChange, onMessageClick }: NavbarProps) => {
         </SheetTrigger>
         <SheetContent>
           <nav className="flex flex-col space-y-4 mt-6">
-            {!loading && profile && profile.image && (
-              <Avatar className="w-8 h-8 shadow-lg">
-                <AvatarImage src={profile.image} alt="User Avatar" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-            )}
+            {!loading &&
+              (token && profile && profile.image ? (
+                <Avatar className="w-8 h-8 shadow-lg">
+                  <AvatarImage src={profile.image} alt="User Avatar" />
+                  <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+              ) : (
+                <Link href="/login">
+                  <Button variant={'outline'}>Signup</Button>
+                </Link>
+              ))}
             <button
-              onClick={() => onViewChange('notifications')}
+              onClick={handleNotificationClick}
               className="relative p-2 rounded-full hover:bg-gray-200"
             >
               <IoNotificationsOutline size={24} />
@@ -151,11 +184,10 @@ const Navbar = ({ onViewChange, onMessageClick }: NavbarProps) => {
             </button>
             <button
               className="hover:text-blue-600"
-              onClick={() => onMessageClick()}
+              onClick={handleMessageClick}
             >
               <FiMessageSquare size={20} />
             </button>
-
             <ThemeToggle />
           </nav>
         </SheetContent>

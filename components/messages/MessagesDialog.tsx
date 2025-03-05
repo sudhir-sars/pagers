@@ -10,12 +10,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { LuMessageSquareDot } from 'react-icons/lu';
 import { IUser, IConversation } from '@/lib/types';
 import ConversationList from './components/ConversationList';
 import MessageWindow from './components/MessageWindow';
 import MessageInput from './components/MessageInput';
 import Image from 'next/image';
+import { useWebSocket } from '@/context/WebSocketContext';
 
 interface MessagesDialogProps {
   open: boolean;
@@ -28,6 +28,7 @@ const MessagesDialog: React.FC<MessagesDialogProps> = ({
   setOpen,
   initialTarget,
 }) => {
+  const { socket } = useWebSocket();
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<IConversation | null>(null);
@@ -202,6 +203,78 @@ const MessagesDialog: React.FC<MessagesDialogProps> = ({
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    if (!socket || !open) return;
+
+    const handleNewMessage = (newMessage: any) => {
+      // console.log('message: ', newMessage);
+      const { conversationId, message } = newMessage;
+
+      // Check if the conversation already exists
+      const existingConv = conversations.find(
+        (conv) => conv.id === conversationId
+      );
+
+      if (existingConv) {
+        // Update the existing conversation with the new message
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? { ...conv, messages: [...conv.messages, message] }
+              : conv
+          )
+        );
+
+        // Update the selected conversation if it matches
+        if (selectedConversation?.id === conversationId) {
+          setSelectedConversation((prev) =>
+            prev ? { ...prev, messages: [...prev.messages, message] } : prev
+          );
+        }
+      } else {
+        // If the conversation doesn't exist, fetch the conversations again
+        fetchConversations();
+      }
+    };
+
+    socket.on('newMessage', handleNewMessage);
+
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+    };
+  }, [socket, open, conversations, selectedConversation]);
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      const token = getToken(); // Replace with actual token retrieval (e.g., from localStorage)
+      const res = await fetch(`/api/messages`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ conversationId }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete conversation');
+      }
+
+      // Update the conversation list by removing the deleted conversation
+      setConversations((prev) =>
+        prev.filter((conv) => conv.id !== conversationId)
+      );
+      setSelectedConversation(null);
+      setPendingRecipient(initialTarget || null);
+      setNewMessage('');
+      setLoading(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
   useEffect(() => {
     if (!open) {
       setConversations([]);
@@ -237,6 +310,7 @@ const MessagesDialog: React.FC<MessagesDialogProps> = ({
               onSelectConversation={handleSelectConversation}
               onSelectUser={handleSelectUser}
               currentUserId={currentUserId}
+              onDeleteConversation={handleDeleteConversation}
             />
           </div>
           <div className="flex-1 flex flex-col p-4">
@@ -280,17 +354,19 @@ const MessagesDialog: React.FC<MessagesDialogProps> = ({
                 </p>
               )}
             </div>
-            {selectedConversation && (
+            {(selectedConversation || pendingRecipient) && (
               <MessageWindow
                 conversation={selectedConversation}
                 currentUserId={currentUserId}
               />
             )}
-            <MessageInput
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              handleSendMessage={handleSendMessage}
-            />
+            {(selectedConversation || pendingRecipient) && (
+              <MessageInput
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                handleSendMessage={handleSendMessage}
+              />
+            )}
           </div>
         </div>
       </DialogContent>

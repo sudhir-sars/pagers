@@ -1,51 +1,51 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IoNotificationsOutline } from 'react-icons/io5';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-interface Notification {
-  id: string;
-  message: string;
-  createdAt: string;
-  type: string;
-  avatar: string;
-}
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useNotifications } from '@/context/NotificationContext';
 
 const NotificationsFeed: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const { notifications, setUnreadCount, setNotifications } =
+    useNotifications();
 
-  const getLocalStorageItem = (key: string) =>
-    typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+  const markNotificationsAsRead = async (notificationIds: string[]) => {
+    if (notificationIds.length === 0) return; // Avoid unnecessary API calls
 
-  const getToken = () => getLocalStorageItem('JWT_token');
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    const token = getToken();
+    const token = localStorage.getItem('JWT_token');
     try {
       const res = await fetch('/api/notifications', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ notificationIds }),
       });
+
       if (!res.ok) {
-        throw new Error('Error fetching notifications');
+        throw new Error('Failed to mark notifications as read');
       }
-      const data = await res.json();
-      setNotifications(data);
+
+      console.log('Notifications marked as read');
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error marking notifications as read:', error);
     }
   };
 
+  const markAllAsRead = () => {
+    const unreadNotifications = notifications.filter((n) => !n.isRead);
+    if (unreadNotifications.length === 0) return;
+
+    const unreadIds = unreadNotifications.map((n) => n.id);
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+    markNotificationsAsRead(unreadIds);
+  };
+
   useEffect(() => {
-    fetchNotifications();
+    markAllAsRead(); // Automatically mark notifications as read when viewed
   }, []);
 
   return (
@@ -53,12 +53,16 @@ const NotificationsFeed: React.FC = () => {
       <div className="flex items-center space-x-2 mb-4">
         <IoNotificationsOutline size={24} />
         <h3 className="text-lg font-semibold">Notifications</h3>
+        {/* <button
+          onClick={markAllAsRead}
+          className="ml-auto text-sm text-blue-500 hover:underline"
+        >
+          Mark all as read
+        </button> */}
       </div>
 
       <ScrollArea className="h-[75vh] p-4">
-        {loading ? (
-          <div className="text-center py-4">Loading notifications...</div>
-        ) : notifications.length === 0 ? (
+        {notifications.length === 0 ? (
           <div className="text-center py-4">No notifications</div>
         ) : (
           <div className="flex flex-col space-y-3">

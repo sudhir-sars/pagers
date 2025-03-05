@@ -82,6 +82,15 @@ export async function GET(req: NextRequest) {
       skip,
       take: limit,
       include: {
+        project: {
+          include: {
+            media: true,
+            followers: true,
+            owner: true,
+            contributors: true,
+            projectLead: true,
+          },
+        },
         author: { include: { user: true } },
         comments: {
           include: {

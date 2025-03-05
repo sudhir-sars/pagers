@@ -2,25 +2,24 @@
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
 import { ShineBorder } from '../magicui/shine-border';
 
 const RightSidebar = () => {
-  const theme = useTheme();
+  const { theme } = useTheme();
   return (
     <>
-      <aside className="w-[300px] fixed right-[calc((100vw-76vw)/2)] top-[6.5rem] ">
+      <aside className="w-[300px] fixed right-[calc((100vw-76vw)/2)] top-[6.5rem]">
         <Card className="relative overflow-hidden">
           <ShineBorder
             borderWidth={1.2}
-            shineColor={theme.theme === 'dark' ? 'white' : 'black'}
+            shineColor={theme === 'dark' ? 'white' : 'black'}
           />
           <CardHeader>
-            <CardTitle>Featured Project 1</CardTitle>
+            <CardTitle>Automated Mail Server</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              A brief description for the first featured project.
+              One-click deployment using Golang, Azure, and Terraform.
             </p>
           </CardContent>
         </Card>
@@ -29,12 +28,10 @@ const RightSidebar = () => {
       <aside className="w-[300px] fixed right-[calc((100vw-76vw)/2)] top-[16.8rem]">
         <Card className="p-4">
           <CardHeader>
-            <CardTitle>Additional Content</CardTitle>
+            <CardTitle>Upcoming</CardTitle>
           </CardHeader>
           <CardContent className="mt-4">
-            <p className="text-sm">
-              Future content or features will be placed here.
-            </p>
+            <p className="text-sm">More projects on the way!</p>
           </CardContent>
         </Card>
       </aside>

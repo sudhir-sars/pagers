@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { createClient } from 'redis';
 
 const prisma = new PrismaClient();
 
@@ -59,11 +60,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const userProfile = await verifyAuth(req);
+    const publisher = createClient({ url: 'redis://localhost:6379' });
     const body = await req.json();
     const {
       type,
       message,
       recipientId,
+      recipientUserId,
       postId,
       commentId,
       replyId,
@@ -90,9 +93,59 @@ export async function POST(req: NextRequest) {
         projectId,
       },
     });
+    await publisher.connect();
+
+    await publisher.publish(
+      'newNotification',
+      JSON.stringify({ recipientUserId, notification })
+    );
+
+    await publisher.disconnect();
     return NextResponse.json({ success: true, notification }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating notification:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const userProfile = await verifyAuth(req);
+
+    // Get notification IDs from the request body
+    const body = await req.json();
+    const notificationIds: string[] = body.notificationIds;
+    console.log('Received notificationIds:', body.notificationIds);
+
+    if (!notificationIds || notificationIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No notification IDs provided' },
+        { status: 400 }
+      );
+    }
+
+    // Update the notifications as read by extracting only the ids
+    const updatedNotifications = await prisma.notification.updateMany({
+      where: {
+        id: { in: notificationIds }, // Ensure only IDs are passed to the `in` operator
+        recipientId: userProfile.id, // Ensure the notifications belong to the authenticated user
+      },
+      data: { isRead: true },
+    });
+
+    if (updatedNotifications.count === 0) {
+      return NextResponse.json(
+        { error: 'No notifications found to mark as read' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, updatedCount: updatedNotifications.count },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('Error marking notifications as read:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

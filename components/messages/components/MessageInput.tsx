@@ -13,7 +13,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   setNewMessage,
   handleSendMessage,
 }) => {
-  const [rows, setRows] = useState(2);
+  const [rows, setRows] = useState(1);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -30,7 +30,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="relative flex gap-2 text-sm">
+    <div className="relative flex gap-2 text-sm bottom-0 ">
       <textarea
         placeholder="Type a message..."
         value={newMessage}

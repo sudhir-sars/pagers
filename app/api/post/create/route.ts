@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-
+import { createClient } from 'redis';
+const publisher = createClient({ url: process.env.REDIS_URL });
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET!;
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Decode token to extract user info (assumes token payload contains userId)
+    console.log('here');
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
     // Retrieve user's profile
@@ -82,8 +84,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await publisher.connect();
+    await publisher.publish(
+      'newPost',
+      JSON.stringify({ newPost, authorId: newPost.authorId })
+    );
+    await publisher.disconnect();
+
     return NextResponse.json({ post: newPost }, { status: 201 });
   } catch (error) {
+    // console.log(error);
     return NextResponse.json(
       { error: 'Invalid or expired token' },
       { status: 401 }

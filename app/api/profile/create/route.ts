@@ -65,16 +65,13 @@ const handler = async (req: NextRequest) => {
     // Destructure and remove userId from incoming data
     const { skills, alias, userId, ...otherProfileData } = profileData;
 
-    // Handle alias if provided
-    const aliasNested = alias ? { create: { name: alias } } : undefined;
-
     // Since skills is a simple string array, we pass it directly
     const skillsArray = Array.isArray(skills) ? skills : [];
 
     const newUserProfile = await prisma.userProfile.create({
       data: {
         ...otherProfileData,
-        alias: aliasNested,
+        alias: alias,
         skills: skillsArray, // Pass the string array directly
         user: {
           connect: {

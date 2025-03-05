@@ -62,7 +62,7 @@ model UserProfile {
   location                 String
   github                   String
   codeforces               String
-  alias                    String?                   @unique
+  alias                    String                    @unique
   following                Follow[]                  @relation("Follower")
   followers                Follow[]                  @relation("Followed")
   posts                    Post[]
@@ -327,6 +327,9 @@ enum NotificationType {
   COMMENT_LIKE
   REPLY_LIKE
   POST_COMMENT
+  NEW_MESSAGE
+  NEW_COMMENT
+  NEW_LIKE
   COMMENT_REPLY
   MENTION
   PROJECT_INVITE

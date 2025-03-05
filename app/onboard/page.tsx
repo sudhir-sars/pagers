@@ -7,8 +7,9 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import { Suspense } from 'react';
 
-export default function onboard() {
+export default function Onboard() {
   return (
     <>
       <Navbar />
@@ -23,8 +24,9 @@ export default function onboard() {
           </CardHeader>
 
           <CardContent>
-            {/* Profile setup content */}
-            <ProfileSetup />
+            <Suspense fallback={<div>Loading profile setup...</div>}>
+              <ProfileSetup />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

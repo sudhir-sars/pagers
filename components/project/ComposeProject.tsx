@@ -111,7 +111,7 @@ const ComposeProject = ({
       selectedFiles.forEach((file) => formData.append('files', file));
 
       try {
-        const uploadResponse = await fetch('/api/project/upload-media', {
+        const uploadResponse = await fetch('/api/post/upload-images', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData,

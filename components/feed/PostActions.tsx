@@ -2,11 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  IoThumbsUpOutline,
-  IoChatbubbleOutline,
-  IoBookmarkOutline,
-} from 'react-icons/io5';
+import { IoChatbubbleOutline, IoBookmarkOutline } from 'react-icons/io5';
+import { GoHeart } from 'react-icons/go';
 import { FaRegShareSquare } from 'react-icons/fa';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -17,10 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { IComment, IPost } from '@/lib/types';
-
-interface PostActionsProps {
-  post: IPost;
-}
+import { useRouter } from 'next/navigation';
 
 // Helper function that formats numbers to at most three digits (including a decimal) with K/M suffixes.
 const formatNumber = (num: number): string => {
@@ -45,60 +39,97 @@ interface ShareDialogProps {
   postId: number;
   isOpen: boolean;
   onClose: () => void;
+  users: { id: string; name: string; image: string }[];
 }
 const ShareDialog: React.FC<ShareDialogProps> = ({
   postId,
   isOpen,
   onClose,
+  users,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [availableUsers, setAvailableUsers] = useState<
+  const [searchResults, setSearchResults] = useState<
     { id: string; name: string; image: string }[]
   >([]);
+  const router = useRouter();
 
-  // For demo purposes, we use dummy data.
+  // Authorized helper: if token exists, execute callback; otherwise, redirect to /login.
+  const authorized = (callback: (token: string) => void) => {
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('JWT_token') : null;
+    if (token) {
+      callback(token);
+    } else {
+      router.push('/login');
+    }
+  };
+
   useEffect(() => {
-    // Replace with an API call to fetch contacts or searchable users.
-    const dummyUsers = [
-      { id: '1', name: 'Alice Johnson', image: '/avatars/alice.jpg' },
-      { id: '2', name: 'Bob Smith', image: '/avatars/bob.jpg' },
-      { id: '3', name: 'Charlie Brown', image: '/avatars/charlie.jpg' },
-      // Add more users as needed
-    ];
-    setAvailableUsers(dummyUsers);
-  }, []);
+    const searchUsers = async () => {
+      if (!searchTerm.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      authorized(async (token) => {
+        try {
+          const res = await fetch(
+            `/api/profile/search?query=${encodeURIComponent(searchTerm)}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!res.ok) throw new Error('Failed to search users');
+          const data = await res.json();
+          setSearchResults(data.users);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    };
 
-  // Filter users based on the search term.
-  const filteredUsers = availableUsers.filter((user) =>
+    const timeoutId = setTimeout(() => {
+      searchUsers();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Filter the existing users prop based on the search term.
+  const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper to get token from localStorage.
-  const getToken = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('JWT_token');
-    }
-    return null;
-  };
+  // Merge searchResults on top of filteredUsers, avoiding duplicates.
+  const mergedUsers = searchTerm.trim()
+    ? [
+        ...searchResults,
+        ...filteredUsers.filter(
+          (u) => !searchResults.find((s) => s.id === u.id)
+        ),
+      ]
+    : filteredUsers;
 
   // When a user is selected, call the share API.
   const handleUserSelect = async (recipientId: string) => {
-    const token = getToken();
-    try {
-      const res = await fetch('/api/post/share', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ postId, recipientId }),
-      });
-      if (!res.ok) throw new Error('Failed to share post');
-      console.log(`Post ${postId} shared with recipient ${recipientId}`);
-      onClose();
-    } catch (error) {
-      console.error(error);
-    }
+    authorized(async (token) => {
+      try {
+        const res = await fetch('/api/post/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ postId, recipientId }),
+        });
+        if (!res.ok) throw new Error('Failed to share post');
+        console.log(`Post ${postId} shared with recipient ${recipientId}`);
+        onClose();
+      } catch (error) {
+        console.error(error);
+      }
+    });
   };
 
   return (
@@ -113,23 +144,24 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
+            className="mb-4 rounded-full"
           />
           <div className="max-h-60 overflow-y-auto">
-            {filteredUsers.map((user) => (
-              <div
-                key={user.id}
-                onClick={() => handleUserSelect(user.id)}
-                className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.image} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span>{user.name}</span>
-              </div>
-            ))}
-            {filteredUsers.length === 0 && (
+            {mergedUsers.length > 0 ? (
+              mergedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={() => handleUserSelect(user.id)}
+                  className="flex items-center space-x-3 p-2 hover:bg-border rounded-xl cursor-pointer"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.image} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span>{user.name}</span>
+                </div>
+              ))
+            ) : (
               <p className="text-sm text-gray-500">No users found.</p>
             )}
           </div>
@@ -144,86 +176,129 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
   );
 };
 
-const PostActions: React.FC<PostActionsProps> = ({ post }) => {
+interface PostActionsProps {
+  post: IPost;
+  initialLiked?: boolean;
+  shareUsers?: { id: string; name: string; image: string }[];
+}
+
+const PostActions: React.FC<PostActionsProps> = ({
+  post,
+  initialLiked = false,
+  shareUsers,
+}) => {
+  const [liked, setLiked] = useState<boolean>(initialLiked);
   const [showComments, setShowComments] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes | 0);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [comments, setComments] = useState<IComment[]>(post.comments);
   const [newCommentText, setNewCommentText] = useState('');
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const router = useRouter();
 
-  // Helper to get token from localStorage.
-  const getToken = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('JWT_token');
+  // Authorized helper: if token exists, execute callback; otherwise, redirect to /login.
+  const authorized = (callback: (token: string) => void) => {
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('JWT_token') : null;
+    if (token) {
+      callback(token);
+    } else {
+      router.push('/login');
     }
-    return null;
   };
 
   const handleLike = async () => {
-    const token = getToken();
-    try {
-      const res = await fetch('/api/post/like', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ postId: post.id }),
-      });
-      if (!res.ok) throw new Error('Failed to like post');
-      const data = await res.json();
-      if (data?.post?.likes !== undefined) {
-        setLikeCount(data.post.likes);
+    authorized(async (token) => {
+      if (liked) {
+        // Unlike the post
+        try {
+          const res = await fetch('/api/post/unlike', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ postId: post.id }),
+          });
+          if (!res.ok) throw new Error('Failed to unlike post');
+          const data = await res.json();
+          if (data?.post?.likes !== undefined) {
+            setLikeCount(likeCount - 1);
+          }
+          setLiked(false);
+        } catch (error) {
+          console.error(error);
+        }
       } else {
-        setLikeCount(likeCount + 1);
+        // Like the post
+        try {
+          const res = await fetch('/api/post/like', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ postId: post.id }),
+          });
+          if (!res.ok) throw new Error('Failed to like post');
+          const data = await res.json();
+          if (data?.post?.likes !== undefined) {
+            setLikeCount(likeCount + 1);
+          }
+          setLiked(true);
+        } catch (error) {
+          console.error(error);
+        }
       }
-      console.log(`Post ${post.id} liked`);
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
 
   const handleSave = async () => {
-    const token = getToken();
-    try {
-      const res = await fetch('/api/post/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ postId: post.id }),
-      });
-      if (!res.ok) throw new Error('Failed to save post');
-      console.log(`Post ${post.id} saved`);
-    } catch (error) {
-      console.error(error);
-    }
+    authorized(async (token) => {
+      try {
+        const res = await fetch('/api/post/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ postId: post.id }),
+        });
+        if (!res.ok) throw new Error('Failed to save post');
+        console.log(`Post ${post.id} saved`);
+      } catch (error) {
+        console.error(error);
+      }
+    });
   };
 
-  const toggleComments = () => {
-    setShowComments((prev) => !prev);
-  };
+  const toggleComments = () => setShowComments((prev) => !prev);
 
   const handlePostComment = async () => {
     if (!newCommentText.trim()) return;
-    const token = getToken();
-    try {
-      const res = await fetch('/api/post/comment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ postId: post.id, text: newCommentText }),
-      });
-      if (!res.ok) throw new Error('Failed to post comment');
-      const data = await res.json();
-      setComments((prev) => [...prev, data.comment]);
-      setNewCommentText('');
-    } catch (error) {
-      console.error(error);
-    }
+    authorized(async (token) => {
+      try {
+        const res = await fetch('/api/post/comment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ postId: post.id, text: newCommentText }),
+        });
+        if (!res.ok) throw new Error('Failed to post comment');
+        const data = await res.json();
+        setComments((prev) => [...prev, data.comment]);
+        setNewCommentText('');
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  };
+
+  const handleShareDialogToggle = () => {
+    authorized(() => {
+      setShareDialogOpen((pre) => !pre);
+    });
   };
 
   return (
@@ -231,18 +306,17 @@ const PostActions: React.FC<PostActionsProps> = ({ post }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button size="sm" variant="ghost" onClick={handleLike}>
-            <IoThumbsUpOutline className="mr-1" />
-            Like {formatNumber(likeCount)}
+            <GoHeart
+              color={liked ? 'red' : ''}
+              className={`mr-1 ${liked ? '-red-600' : ''}`}
+            />
+            {formatNumber(likeCount)}
           </Button>
           <Button size="sm" variant="ghost" onClick={toggleComments}>
             <IoChatbubbleOutline className="mr-1" />
             Comment {formatNumber(comments.length)}
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShareDialogOpen(true)}
-          >
+          <Button size="sm" variant="ghost" onClick={handleShareDialogToggle}>
             <FaRegShareSquare className="mr-1" />
             Share
           </Button>
@@ -257,53 +331,17 @@ const PostActions: React.FC<PostActionsProps> = ({ post }) => {
         <div className="mt-4 border-t pt-4">
           {comments.length > 0 ? (
             <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex items-start space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={comment.author.image}
-                      alt={comment.author.name}
-                    />
-                    <AvatarFallback>
-                      {comment.author.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-semibold">
-                      {comment.author.name}
-                    </p>
-                    <p className="text-xs text-gray-600">{comment.text}</p>
-                    {comment.replies && comment.replies.length > 0 && (
-                      <div className="ml-8 mt-2 space-y-2">
-                        {comment.replies.map((reply) => (
-                          <div
-                            key={reply.id}
-                            className="flex items-start space-x-2"
-                          >
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage
-                                src={reply.author.image}
-                                alt={reply.author.name}
-                              />
-                              <AvatarFallback>
-                                {reply.author.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-xs font-semibold">
-                                {reply.author.name}
-                              </p>
-                              <p className="text-[10px] text-gray-500">
-                                {reply.text}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {comments.length > 0 &&
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex items-start space-x-2">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {comment.author.name}
+                      </p>
+                      <p className="text-xs text-gray-600">{comment.text}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <p className="text-sm text-gray-500">No comments yet.</p>
@@ -327,6 +365,7 @@ const PostActions: React.FC<PostActionsProps> = ({ post }) => {
         postId={post.id}
         isOpen={shareDialogOpen}
         onClose={() => setShareDialogOpen(false)}
+        users={shareUsers || []}
       />
     </div>
   );

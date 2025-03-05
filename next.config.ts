@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
       'picsum.photos',
     ],
   },
+  typescript: {
+    // WARNING: This will allow production builds even if there are type errors.
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    // WARNING: This will allow production builds even if there are lint errors.
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;

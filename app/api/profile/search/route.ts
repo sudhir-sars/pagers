@@ -49,24 +49,11 @@ export async function GET(req: NextRequest) {
         image: true,
         profile: {
           select: {
-            alias: {
-              select: {
-                name: true, // Select the alias name
-              },
-            },
+            alias: true,
           },
         },
       },
     });
-
-    // Format the response to include alias in the users list.
-    // const formattedUsers = users.map((user) => ({
-    //   id: user.id,
-    //   name: user.name,
-    //   email: user.email,
-    //   image: user.image,
-    //   alias: user.profile?.alias?.name,
-    // }));
 
     return NextResponse.json({ users: users });
   } catch (error: any) {

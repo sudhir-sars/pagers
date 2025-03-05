@@ -38,7 +38,14 @@ export interface IPostAction {
   userProfile: IUserProfile; // Assuming UserProfile is a type that is already defined
   post: IPost; // Assuming Post is a type that is already defined
 }
-
+export interface INotification {
+  id: string;
+  message: string;
+  createdAt: string;
+  type: string;
+  avatar: string;
+  isRead: boolean;
+}
 export interface IPost {
   id: number;
   brief: string;
@@ -63,7 +70,7 @@ export interface IUserProfile {
   id: string;
   userId: string;
   email: string;
-  alias: IAlias;
+  alias: string;
   user: IUser;
   image: string;
   name: string;

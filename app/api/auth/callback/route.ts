@@ -16,8 +16,7 @@ const oAuth2Client = new OAuth2Client(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 /**
  * Save or update a user in the database based on Google user info.
  */
-async function saveUser(userInfo: any, tokens: any) {
-  // Use the Google user ID as the unique identifier
+export const saveUser = async (userInfo: any, tokens: any) => {
   const userId = userInfo.id;
   const email = userInfo.email;
   const name = userInfo.name;
@@ -29,14 +28,16 @@ async function saveUser(userInfo: any, tokens: any) {
 
   if (existingUser) {
     // Optionally update user details.
+    console.log(existingUser);
     return { user: existingUser, isNewUser: false };
   } else {
     const newUser = await prisma.user.create({
       data: { userId, email, name, image },
     });
+    // console.log(newUser);
     return { user: newUser, isNewUser: true };
   }
-}
+};
 
 const handler = async (req: NextRequest) => {
   const url = new URL(req.url);
