@@ -7,7 +7,8 @@
     "mdev": "concurrently \"next dev --turbopack\" \"npm run dev:ws\"",
     "dev:ws": "nodemon websocket/socket.js",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"next start\" \"npm run dev:ws\"",
+    "ostart": "next start",
     "lint": "next lint",
     "setup-test-db": "dotenv -e .env.test -- prisma migrate reset --force",
     "test": "npm run setup-test-db && jest"
