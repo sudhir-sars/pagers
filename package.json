@@ -78,11 +78,10 @@
       "<rootDir>/jest.env.js"
     ],
     "transform": {
-      "^.+\\.(t|j)sx?$": "ts-jest" 
+      "^.+\\.(t|j)sx?$": "ts-jest"
     },
     "transformIgnorePatterns": [
-      "/node_modules/(?!your-esm-module|another-esm-module)" 
+      "/node_modules/(?!your-esm-module|another-esm-module)"
     ]
-    
   }
 }

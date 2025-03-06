@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { BlobServiceClient } from '@azure/storage-blob';
 import Busboy from 'busboy';
-import * as dotenv from 'dotenv';
 import { Readable } from 'stream';
-
-dotenv.config();
 
 const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET!;
 const AZURE_STORAGE_CONNECTION_STRING =
