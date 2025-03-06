@@ -40,7 +40,7 @@ export default function ProfileView({
         };
 
         if (isOwnProfile) {
-          headers['id'] = `Bearer ${token}`;
+          headers['Authorization'] = `Bearer ${token}`;
         }
 
         const res = await fetch(endpoint, { headers });
