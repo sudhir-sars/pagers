@@ -32,6 +32,7 @@ jobs:
           script: |
             cd /home/azureuser/pagers
             git pull origin master
+            npm install
             npm install --production
             npm run build
             pm2 reload pagers-app
