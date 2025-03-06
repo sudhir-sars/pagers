@@ -56,6 +56,7 @@ io.on('connection', (socket) => {
 });
 
 // Set up Redis subscriber
+
 const subscriber = createClient({ url: process.env.REDIS_URL }); // Adjust Redis URL as needed
 subscriber.connect().then(() => {
   subscriber.subscribe('newMessage', (data) => {
