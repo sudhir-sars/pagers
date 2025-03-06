@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '18' # adjust based on your app requirements
 
-      - name: Install dependencies and build
+      - name: Install dependencies and build locally
         run: |
           npm install
           npm run build
@@ -31,8 +31,10 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd /home/azureuser/pagers
-            git pull origin master
+            # Force update: discard local changes and match the remote branch
+            git fetch origin
+            git reset --hard origin/master
+            # Install only production dependencies and rebuild
             npm install
-            npm install --production
             npm run build
             pm2 reload pagers-app
