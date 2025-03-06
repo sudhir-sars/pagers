@@ -31,7 +31,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd /home/azureuser/pagers
-            git pull origin main
+            git pull origin master
             npm install --production
             npm run build
             pm2 reload pagers-app
