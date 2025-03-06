@@ -1,35 +1,37 @@
-name: CI/CD Pipeline
+name: Deploy to Ubuntu VM
 
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: '18' # adjust based on your app requirements
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Install dependencies and build
+        run: |
+          npm install
+          npm run build
 
-      - name: Build Project
-        run: npm run build
-
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+      - name: Deploy to Ubuntu VM via SSH
+        uses: appleboy/ssh-action@v0.1.8
         with:
-          app-name: ${{ secrets.AZURE_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-          package: release.zip
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/azureuser/your-app-folder
+            git pull origin main
+            npm install --production
+            npm run build
+            pm2 reload pagers-app
