@@ -1,17 +1,33 @@
 
 import { ObjectSchema, SchemaType } from "@google/generative-ai";
 
+/**
+ * Builds an instruction string for extracting questions from a text chunk,
+ * taking into account previously processed question numbers.
+ *
+ * @param {Set<number>} processedNumbers - A set of question numbers that have already been processed.
+ * @param {string} chunk - The text chunk from which to extract questions. Each line in the chunk is prefixed with its line number.
+ * @returns {string} An instruction string for extracting questions. If questions have been processed, it excludes those and starts from the next question number. Otherwise, it instructs to extract all questions.
+ */
 export function buildExtractionInstruction(processedNumbers: Set<number>, chunk: string): string {
-    if (processedNumbers.size > 0) {
-      const lastQuestion = Math.max(...Array.from(processedNumbers));
-      return `Extract questions from the following text, where each line is prefixed with its line number.\n\n Exclude questions with question numbers : ${[...processedNumbers].join(", ")} as these have been already extracted.\n\n,Extract questions starting from question number ${lastQuestion + 1} from text:\n\n${chunk}`;
-    }
-    return `Extract all questions from the following text, where each line is prefixed with its line number:\n\n${chunk}`;
+  if (processedNumbers.size > 0) {
+    const lastQuestion = Math.max(...Array.from(processedNumbers));
+    return `Extract questions from the following text, where each line is prefixed with its line number.\n\n Exclude questions with question numbers : ${[...processedNumbers].join(", ")} as these have been already extracted.\n\n,Extract questions starting from question number ${lastQuestion + 1} from text:\n\n${chunk}`;
   }
+  return `Extract all questions from the following text, where each line is prefixed with its line number:\n\n${chunk}`;
+}
 
+/**
+ * Builds a complete prompt by combining the schema description, base instructions, and extraction instruction.
+ *
+ * @param {string} schemaDescription - A description of the schema or format in which the extracted questions should be returned.
+ * @param {string} baseInstructions - General instructions for the extraction process.
+ * @param {string} extractionInstruction - Specific instructions for extracting questions from a text chunk.
+ * @returns {string} A complete prompt string that includes the schema description, base instructions, and extraction instruction, separated by newlines.
+ */
 export function buildPrompt(schemaDescription: string, baseInstructions: string, extractionInstruction: string): string {
-    return `${schemaDescription}\n${baseInstructions}\n${extractionInstruction}`;
-  }
+  return `${schemaDescription}\n\n${baseInstructions}\n\n${extractionInstruction}`;
+}
 
   export const schemaDescription = `
   Extract questions as a JSON array where each question object includes:
@@ -41,6 +57,7 @@ export function buildPrompt(schemaDescription: string, baseInstructions: string,
   1. Never include options in question content or in the explanation.
   2. Never include answers in question or option content.
   3. Don’t include page header or footer.
+  4. Never include lines number of other questions question_content or explanation in the current question.
   `;
 
 
