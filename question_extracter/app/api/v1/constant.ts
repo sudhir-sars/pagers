@@ -1,5 +1,6 @@
-import { ObjectSchema, SchemaType } from "@google/generative-ai";
 
+import { ObjectSchema, SchemaType } from "@google/generative-ai";
+  
 export const geminiSchema: ObjectSchema = {
   description: "Schema for a question model",
   type: SchemaType.OBJECT,
@@ -30,36 +31,37 @@ export const geminiSchema: ObjectSchema = {
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          i: {
+          oi: {
             type: SchemaType.NUMBER,
             description: "The index of the option, a non-negative integer starting from 0 (e.g., 0, 1, 2, ...), uniquely identifying the option within the list.",
             nullable: false,
           },
-          c: {
+          oc: {
             type: SchemaType.STRING,
             description: "The line number or range in the source text where the option content is located. For example, '6' for line 6, or '6-7' for lines 6 to 7.",
             nullable: false,
           },
         },
-        required: ["i", "c"],
+        required: ["oi", "oc"],
       },
     },
+   
     so: {
       type: SchemaType.OBJECT,
       description: "The solution object containing the correct answer and an explanation, providing the resolution to the question.",
       properties: {
-        a: {
+        sa: {
           type: SchemaType.STRING,
           description: "The line number or range in the source text where the correct answer is specified. For example, '8' or '8-9'.",
           nullable: false,
         },
-        e: {
+        se: {
           type: SchemaType.STRING,
           description: "Optional. The line number or range in the source text where the explanation for the answer is provided, for example, '10' or '10-12'.",
           nullable: true,
         },
       },
-      required: ["a"],
+      required: ["sa"],
     },
     d: {
       type: SchemaType.NUMBER,

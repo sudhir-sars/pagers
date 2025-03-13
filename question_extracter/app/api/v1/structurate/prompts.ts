@@ -12,15 +12,13 @@ export function buildPrompt(schemaDescription: string, baseInstructions: string,
 
   export const schemaDescription = `
 Extract questions as a JSON array where each question is an object with:
-- question_number (number, required)
-- subject (string, required)
-- content (string, required)
-- image (string, optional)
-- type (string, required, e.g., "multiple_choice")
-- options (array of objects with option_id (string, required), content (string, optional), option_image (string, optional))
-- solution (object with answer (string, required), explanation (string, optional), solution_image (string, optional))
-- tags (array of strings, default empty)
-- difficulty_level (number, default 5)
+- n (number, required: question number)
+- s (string, required: infered question subject question number)
+- c (string, required: line number in which question content is present)
+- t (number, required: infered from question, 0 for "multiple_choice", 1 for Numberical question)
+- o (options array of objects with oi (st  tags: q.ta || [],ring, required: option id), oc (string, required: option content ))
+- so (object with sa (string, required: answer to the question), se (string, optional: explanation to the question))
+- d (number, default 5: infered from question difficulty)
 
   `;
 
@@ -37,3 +35,4 @@ Extract questions as a JSON array where each question is an object with:
   2. Never include answers in question or option content.
   3. Don’t include page header or footer.
   `;
+

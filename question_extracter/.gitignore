@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-/question_extracter/node_modules/*
 
 
 /.pnp

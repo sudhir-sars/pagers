@@ -19,12 +19,12 @@ export function transformQuestions(questions: any[], originalLines: string[], ex
   
         // Type-specific validation
         if (q.t === 0) { // Multiple choice
-          if (q.o.length === 0 || q.o.some((opt: any) => !getContent(opt.c, originalLines, "option").trim())) {
+          if (q.o.length === 0 || q.o.some((opt: any) => !getContent(opt.oc, originalLines, "option").trim())) {
             console.log(`Question ${q.n} has invalid/empty options, skipping.`);
             return false;
           }
         } else if (q.t === 1) { // Numerical
-          const answer = getContent(q.so.a, originalLines, "solution");
+          const answer = getContent(q.so.sa, originalLines, "solution");
           if (!answer.trim()) {
             console.log(`Question ${q.n} has no answer, skipping.`);
             return false;
@@ -39,15 +39,14 @@ export function transformQuestions(questions: any[], originalLines: string[], ex
         content: getContent(q.c, originalLines, "question"),
         type: q.t === 0 ? "multiple_choice" : "numerical",
         options: q.o.map((opt: any) => ({
-          option_id: opt.i,
-          content: getContent(opt.c, originalLines, "option")
+          option_id: opt.oi,
+          content: getContent(opt.oc, originalLines, "option")
         })),
         solution: {
-          answer: getContent(q.so.a, originalLines, "solution"),
-          explanation: q.so.e ? getContent(q.so.e, originalLines, "solution") : undefined,
+          answer: getContent(q.so.sa, originalLines, "solution"),
+          explanation: q.so.se ? getContent(q.so.e, originalLines, "solution") : undefined,
         },
-        tags: q.ta || [],
-        difficulty_level: q.d,
+        d: q.d,
       }));
   }
 
@@ -96,7 +95,8 @@ export function sleep(ms: number): Promise<void> {
   }
 
 export async function getFileLines(fileId: string): Promise<{ originalLines: string[]; numberedLines: string[] }> {
-    const filePath = join(process.cwd(), "public/uploads", `${fileId}.md`);
+
+  const filePath = join(process.cwd(), "/public/uploads", `${fileId}.md`);
     const fileContent = await readFile(filePath, "utf-8");
     const originalLines = fileContent.split("\n");
     const numberedLines = originalLines.map((line, index) => `${index + 1}: ${line}`);

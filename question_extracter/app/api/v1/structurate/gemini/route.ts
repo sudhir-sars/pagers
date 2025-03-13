@@ -33,7 +33,7 @@ async function processPromptWithWindowAdjustment(
   let end = Math.min(currentIndex + CHUNK_SIZE, numberedLines.length);
   let chunk = numberedLines.slice(currentIndex, end).join("\n");
   let extractionInstruction = buildExtractionInstruction(processedNumbers, chunk);
-  let prompt
+  let prompt='';
   if(missingPrompt){
     prompt = buildPrompt(schemaDescription, baseInstructions, missingPrompt);
 
@@ -59,7 +59,13 @@ async function processPromptWithWindowAdjustment(
       const newEnd = Math.min(numberedLines.length, currentIndex + CHUNK_SIZE);
       chunk = numberedLines.slice(newStart, newEnd).join("\n");
       extractionInstruction = buildExtractionInstruction(processedNumbers, chunk);
-      prompt = buildPrompt(schemaDescription, baseInstructions, extractionInstruction);
+      if(missingPrompt){
+        prompt = buildPrompt(schemaDescription, baseInstructions, missingPrompt);
+    
+      }else{
+        prompt = buildPrompt(schemaDescription, baseInstructions, extractionInstruction);
+      }
+      
     }
   }
   console.error(`[Gemini] Max retries (${maxRetries}) reached for chunk at line ${currentIndex + 1}`);
@@ -111,19 +117,25 @@ export async function POST(request: NextRequest) {
     console.error("File reading error:", err);
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
+  
 
   // Initialize containers
   let questions: any[] = [];
   let processedQuestionNumbers = new Set<number>();
   let processedQuestionObjects = new Set<string>(); // New set for question objects
   const EXPECTED_MAX_QUESTION = 90; // Set based on your input
+  
 
 
   // Initialize Gemini API
   const apiKey = process.env.GEMINI_API_KEY;
+ 
+  
   if (!apiKey) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not set" }, { status: 500 });
   }
+ 
+  
   const genAI = new GoogleGenerativeAI(apiKey);
   const questionsSchema: ArraySchema = {
     description: "List of questions",
@@ -138,6 +150,7 @@ export async function POST(request: NextRequest) {
       responseSchema: questionsSchema,
     },
   });
+  console.log("ere")
   
   // Process file in chunks
   for (let i = 0; i < numberedLines.length; i += STEP_SIZE) {
