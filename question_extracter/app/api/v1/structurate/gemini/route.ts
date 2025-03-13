@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, ArraySchema } from "@google/generative-ai";
-import { geminiSchema } from "../../constant";
+import { geminiSchema } from "../prompts";
 import { sleep,
         getFileLines,
       
@@ -15,8 +15,9 @@ import { buildExtractionInstruction,buildPrompt,schemaDescription ,baseInstructi
 // ============================
 const CHUNK_SIZE = 300;        // Number of lines per chunk
 const STEP_SIZE = 200;        // Reduced step size for more overlap
-const MAX_RETRIES = 1;        // Increased retries for robustness
+const MAX_RETRIES = 2;        // Increased retries for robustness
 const INITIAL_SLEEP_MS = 30000; // Initial delay of 5 seconds
+let TOTAL_CALLS=1;
 
 
 async function processPromptWithWindowAdjustment(
@@ -47,7 +48,9 @@ async function processPromptWithWindowAdjustment(
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
       const newQuestions = JSON.parse(responseText);
+      console.log(newQuestions)
       console.log(`[Gemini] Extracted ${newQuestions.length} questions from this chunk`);
+      console.log(TOTAL_CALLS++);
       return newQuestions;
     } catch (err) {
       retries++;
@@ -81,7 +84,7 @@ async function processMissingWindow(
   missingRanges: { from: number; to: number }[],
   maxRetries: number
 ): Promise<any[]> {
-  const windowStart = Math.max(0, currentIndex - CHUNK_SIZE);
+  const windowStart = Math.max(0, currentIndex - CHUNK_SIZE-200)
   const windowEnd = Math.min(numberedLines.length, currentIndex + CHUNK_SIZE);
   const windowChunk = numberedLines.slice(windowStart, windowEnd).join("\n");
   const missingNumbersText = missingRanges.map(r => `${r.from}-${r.to}`).join(", ");
@@ -150,11 +153,11 @@ export async function POST(request: NextRequest) {
       responseSchema: questionsSchema,
     },
   });
-  console.log("ere")
+ 
   
   // Process file in chunks
   for (let i = 0; i < numberedLines.length; i += STEP_SIZE) {
-    console.log(`Processing chunk starting at line ${i + 1}`);
+    // console.log(`Processing chunk starting at line ${i + 1}`);
     const newQuestions = await processPromptWithWindowAdjustment(
       model,
       numberedLines,
@@ -169,15 +172,15 @@ export async function POST(request: NextRequest) {
       // Serialize question object to check for duplicates
       const questionKey = JSON.stringify({
        
-        c: q.c,
+        question_content: q.question_content,
        
         
       });
       if (!processedQuestionObjects.has(questionKey)) {
         questions.push(q);
-        processedQuestionNumbers.add(q.n);
+        processedQuestionNumbers.add(q.question_number);
         processedQuestionObjects.add(questionKey);
-        console.log(`Extracted question ${q.n}`); // Log for debugging
+        // console.log(`Extracted question ${q.n}`); // Log for debugging
       } else {
         console.log(`Duplicate question ${q.n} detected, skipping.`);
       }
@@ -200,15 +203,15 @@ export async function POST(request: NextRequest) {
       for (const q of missingQuestions) {
         const questionKey = JSON.stringify({
          
-          c: q.c,
+          question_content: q.question_content,
           
        
         });
         if (!processedQuestionObjects.has(questionKey)) {
           questions.push(q);
-          processedQuestionNumbers.add(q.n);
+          processedQuestionNumbers.add(q.question_number);
           processedQuestionObjects.add(questionKey);
-          console.log(`Extracted missing question ${q.n}`);
+          // console.log(`Extracted missing question ${q.n}`);
         }
       }
       console.log("After missing window, processed question numbers:", [...processedQuestionNumbers]);

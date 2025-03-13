@@ -5,48 +5,48 @@ export function transformQuestions(questions: any[], originalLines: string[], ex
     return questions
       .filter(q => {
         // Check if question number is within expected range
-        if (q.n > expectedMaxQuestion) {
-          console.log(`Question ${q.n} exceeds expected maximum (${expectedMaxQuestion}), skipping.`);
+        if (q.question_number > expectedMaxQuestion) {
+          console.log(`Question ${q.question_number} exceeds expected maximum (${expectedMaxQuestion}), skipping.`);
           return false;
         }
   
-        const content = getContent(q.c, originalLines, "question");
-        // Skip if content is empty or too short to be a question
-        if (!content.trim() || content.trim().length < 5) {
-          console.log(`Question ${q.n} has invalid/empty content: "${content}", skipping.`);
-          return false;
-        }
+        // const content = getContent(q.question_content, originalLines, "question");
+        // // Skip if content is empty or too short to be a question
+        // if (!content.trim() || content.trim().length < 5) {
+        //   console.log(`Question ${q.question_number} has invalid/empty content: "${content}", skipping.`);
+        //   return false;
+        // }
   
-        // Type-specific validation
-        if (q.t === 0) { // Multiple choice
-          if (q.o.length === 0 || q.o.some((opt: any) => !getContent(opt.oc, originalLines, "option").trim())) {
-            console.log(`Question ${q.n} has invalid/empty options, skipping.`);
-            return false;
-          }
-        } else if (q.t === 1) { // Numerical
-          const answer = getContent(q.so.sa, originalLines, "solution");
-          if (!answer.trim()) {
-            console.log(`Question ${q.n} has no answer, skipping.`);
-            return false;
-          }
-        }
+        // // Type-specific validation
+        // if (q.question_type === 0) { // Multiple choice
+        //   if (q.options.length === 0 || q.options.some((opt: any) => !getContent(opt.option_content, originalLines, "option").trim())) {
+        //     console.log(`Question ${q.question_number} has invalid/empty options, skipping.`);
+        //     return false;
+        //   }
+        // } else if (q.question_type === 1) { // Numerical
+        //   const answer = getContent(q.solution.answer, originalLines, "solution");
+        //   if (!answer.trim()) {
+        //     console.log(`Question ${q.question_number} has no answer, skipping.`);
+        //     return false;
+        //   }answer
+        // }
   
         return true;
       })
       .map(q => ({
-        question_number: q.n,
-        subject: sanitizeText(q.s, "question"),
-        content: getContent(q.c, originalLines, "question"),
-        type: q.t === 0 ? "multiple_choice" : "numerical",
-        options: q.o.map((opt: any) => ({
-          option_id: opt.oi,
-          content: getContent(opt.oc, originalLines, "option")
+        question_number: q.question_number,
+        subject: sanitizeText(q.subject, "question"),
+        content: getContent(q.question_content, originalLines, "question"),
+        type: q.question_type === 0 ? "multiple_choice" : "numerical",
+        options: q.options.map((opt: any) => ({
+          option_id: opt.option_id,
+          content: getContent(opt.option_content, originalLines, "option")
         })),
         solution: {
-          answer: getContent(q.so.sa, originalLines, "solution"),
-          explanation: q.so.se ? getContent(q.so.e, originalLines, "solution") : undefined,
+          answer: getContent(q.solution.answer, originalLines, "solution"),
+          explanation: q.solution.explanation ? getContent(q.solution.explanation, originalLines, "solution") : undefined,
         },
-        d: q.d,
+        difficulty_level: q.difficulty_level,
       }));
   }
 
@@ -57,10 +57,9 @@ export function sanitizeText(text: string, type: "question" | "option" | "soluti
     } else if (type === "option") {
       return text.replace(/^\(\d+\)\s*/, ""); // e.g., "(1) "
     }
-    
-    // else if (type === "solution") {
-    //   return text.replace(/^Sol\.\s*\\?\$?\\?/, ""); // e.g., "Sol. \$"
-    // }
+    else if (type === "solution") {
+      return text.replace(/^(sol\s?\.)/i, '');
+    }
     return text;
   }
 
