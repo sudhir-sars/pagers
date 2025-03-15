@@ -10,6 +10,7 @@ import { loadSre } from "mathpix-markdown-it/lib/sre/sre-browser";
 export default function MathpixRenderer({ markdownData }) {
     // console.log(markdownData)
   const [loading, setLoading] = useState(true);
+  // console.log(markdownData)
 
   // Configure outMath options for math rendering
   const outMath = {

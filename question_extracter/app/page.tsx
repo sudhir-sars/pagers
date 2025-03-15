@@ -19,7 +19,7 @@ export default function Home() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/v1/upload', {
+      const response = await fetch('/api/v2/upload', {
         method: 'POST',
         body: formData,
       });
@@ -44,13 +44,14 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/structurate/${model}`, {
+      const response = await fetch(`/api/v2/structurate/${model}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId }),
       });
       const data = await response.json();
       if (data.questions) {
+        console.log(data)
         console.log(data.questions);
         setQuestions(data.questions);
       } else {

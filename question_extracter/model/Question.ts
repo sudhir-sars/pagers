@@ -18,8 +18,8 @@ export interface QuestionDocument extends mongoose.Document {
     explanation: string;
    
   };
-  tags: string[];
   difficulty_level: number;
+  validation:boolean
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,7 +44,12 @@ const QuestionSchema = new Schema<QuestionDocument>(
       explanation: { type: String },
     
     },
-    tags: { type: [String], default: [] },
+
+    validation:{
+      type:Boolean,
+      required:true,
+      default:true,
+    },
     difficulty_level: { type: Number, default: 5 },
   },
   { timestamps: true },
