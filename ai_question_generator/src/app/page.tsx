@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import MathpixRenderer from "@/components/mathpixRenderer/MathpixRenderer";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -26,9 +27,8 @@ export default function Home() {
         }
       );
       const data = await res.json();
-      // Assuming the API returns an object with a "questions" field
       setFetchedData((prev) => ({ ...prev, [key]: data.questions }));
-      console.log(data.questions)
+      console.log(data.questions);
       setSelectedKey(key);
     } catch (error) {
       console.error("Error calling API:", error);
@@ -87,77 +87,80 @@ export default function Home() {
   const currentData = selectedKey ? fetchedData[selectedKey] : null;
 
   return (
-    <div className="flex flex-row items-start justify-center min-h-screen p-4 gap-6">
-      <div className="w-1/3 p-4 border-r h-[100vh] overflow-scroll">
-        <h2 className="text-xl font-bold mb-4">Topics</h2>
-        {topics.map((topic) => (
-          <div key={topic.category} className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">{topic.category}</h3>
-            {topic.subcategories.map((sub) => (
-              <Button
-                key={sub}
-                onClick={() => handleClick(topic.category, sub)}
-                className="w-full my-1"
-                size="sm"
-              >
-                {sub}
-              </Button>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="w-2/3 p-4">
-        <h2 className="text-xl font-bold mb-4">Questions</h2>
-        {loading ? (
-          <p>Loading...</p>
-        ) : currentData ? (
-          <div className="space-y-4">
-            {currentData.map((question, index) => (
-              <div
-                key={index}
-                className="border p-4 rounded-lg shadow-md bg-white"
-              >
-                <h3 className="text-lg font-bold mb-1">
-                  {question.subject}
-                </h3>
-                <p className="mb-2">{question.content}</p>
-                <div className="mb-2">
-                  <p className="font-semibold">Options:</p>
-                  <ul className="list-disc pl-5">
-                    {question.options.map((opt, idx) => (
-                      <li key={idx}>
-                        <strong>{opt.option_id}:</strong> {opt.content}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="mb-2">
+
+      <div className="flex flex-row items-start justify-center min-h-screen p-4 gap-6">
+        <div className="w-1/3 p-4 border-r h-[100vh] overflow-scroll">
+          <h2 className="text-xl font-bold mb-4">Topics</h2>
+          {topics.map((topic) => (
+            <div key={topic.category} className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">{topic.category}</h3>
+              {topic.subcategories.map((sub) => (
+                <Button
+                  key={sub}
+                  onClick={() => handleClick(topic.category, sub)}
+                  className="w-full my-1"
+                  size="sm"
+                >
+                  {sub}
+                </Button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="w-2/3 p-4">
+          <h2 className="text-xl font-bold mb-4">Questions</h2>
+          {loading ? (
+            <p>Loading...</p>
+          ) : currentData ? (
+            <div className="space-y-4">
+              {currentData.map((question, index) => (
+                <div
+                  key={index}
+                  className="border p-4 rounded-lg shadow-md bg-white"
+                >
+                  <h3 className="text-lg font-bold mb-1">{question.subject}</h3>
+                  <div className="mb-2">
+                     <MathpixRenderer markdownData={question.content}  />
+                   </div>
+                  <div className="mb-2">
+                    <p className="font-semibold">Options:</p>
+                    <ul className="list-disc pl-5">
+                      {question.options.map((opt, idx) => (
+                        <li key={idx}>
+                          <strong>{opt.option_id}:</strong> {opt.content}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mb-2">
+                    <p>
+                      <strong>Answer:</strong> {question.solution.answer}
+                    </p>
+                    <div>
+                      <strong>Explanation:</strong>
+                      <MathpixRenderer markdownData={question.solution.explanation}  />
+            
+                    </div>
+                  </div>
                   <p>
-                    <strong>Answer:</strong> {question.solution.answer}
+                    <strong>Difficulty:</strong> {question.difficulty_level}
                   </p>
                   <p>
-                    <strong>Explanation:</strong>{" "}
-                    {question.solution.explanation}
+                    <strong>Validation:</strong>{" "}
+                    {question.validation ? "Valid" : "Invalid"}
                   </p>
+                  <div>
+                  <MathpixRenderer markdownData={question.summary} />
+          
+                  </div>
                 </div>
-                <p>
-                  <strong>Difficulty:</strong> {question.difficulty_level}
-                </p>
-                <p>
-                  <strong>Validation:</strong>{" "}
-                  {question.validation ? "Valid" : "Invalid"}
-                </p>
-                <p>
-                  <strong>Summary:</strong>{" "}
-                  {question.summary}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>Select a topic to fetch data.</p>
-        )}
+              ))}
+            </div>
+          ) : (
+            <p>Select a topic to fetch data.</p>
+          )}
+        </div>
       </div>
-    </div>
+
   );
 }

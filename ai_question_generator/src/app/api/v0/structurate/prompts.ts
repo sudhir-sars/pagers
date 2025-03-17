@@ -1,45 +1,45 @@
 import { ObjectSchema, SchemaType } from "@google/generative-ai";
 
 export function buildPrompt(questionTopic: string): string {
-  return `Generate 10 IIT JEE level multiple choice questions on ${questionTopic} (include formulas and graphical content where possible). 
-Each question must be as challenging as the toughest past IIT JEE problems.
-Ensure that:
-- Analyze past JEE Mains question patterns, including conceptual depth, numerical complexity, and trickiness.
-- The question should require similar problem-solving skills as real exam questions.
-- Then, provide a step-by-step solution and a detailed explanation, mimicking how top JEE mentors explain it.
-- Check the answer keys and answer and validate properly each question should have 4 options and correct answer.
-- The question should be as difficult as the toughest JEE Mains questions from past years.
-- It must include multi-step reasoning, require deeper conceptual understanding, and test problem-solving speed under exam conditions.
-- Do not simplify the question unnecessarily. Provide a rigorous solution with insights on how to approach such problems in JEE Mains.
-- The question content must not be more than 70 words.
-- Each of the 4 options must not be more than 20 words.
-- The detailed explanation must not be more than 170 words.
-- Wait before answering and take time to self validate the question's integrity.
-- Validate the answer keys so that the correct answer is among the provided options.
-- Output the result in a structured JSON format following the provided schema.
+  return `
+Generate 15 JEE Mains-level questions on ${questionTopic} with the exact difficulty level as past JEE Mains exams. Analyze past JEE Mains question patterns, including conceptual depth, numerical complexity, and trickiness. The question should require similar problem-solving skills as real exam questions. Then, provide a step-by-step solution and a detailed explanation, mimicking how top JEE mentors explain it. check the answer keys and answer and validate properly each question should have 4 options and correct answer
 
-Please output an array of question objects. Each question object must adhere to the following schema:
+The question should be as difficult as the toughest JEE Mains questions from past years. It must include multi-step reasoning, require deeper conceptual understanding, and test problem-solving speed under exam conditions. Do not simplify the question unnecessarily. Provide a rigorous solution with insights on how to approach such problems in JEE Mains.
 
+For each question, include:
+- **"subject"**: String (e.g., "Mathematics", "Physics", "Chemistry").
+- **"question_content"**: String (max 60 words, framing an exceptionally complex problem).
+- **"options"**: Array of 4 objects, each with:
+  - **"option_id"**: Number (1 to 4).
+  - **"option_content"**: String (one must be the correct answer, all others being sophisticated distractors).
+- **"solution"**: Object with:
+  - **"answer"**: String (must match one 'option_content' exactly).
+  - **"answer_id"**: String (answer_id will be the option_id of correct option that matches the answer).
+  - **"explanation"**: String (explanation must be at max 150 words, providing a solution as delivered by top JEE mentors).
+- **"difficulty_level"**: Number (0-100, reflecting extreme complexity).
+
+
+**Output Format**:
+Return a valid JSON array of 15 question objects, each adhering to the structure above.
+
+**Example**:
 {
-  "subject": String,                 // The subject area (e.g., "Physics").
-  "question_content": String,        // The complete question text, not exceeding 60 words.
-  "options": [                       // An array containing exactly 4 option objects.
-    {
-      "option_id": Number,           // The identifier for the option (1, 2, 3, or 4).
-      "option_content": String       // The text of the option, not exceeding 20 words.
-    }
-    // ... exactly 4 options in total
+  "subject": "Mathematics",
+  "question_content": "Given f'(x) = f(x) + f(1-x) ∀ x ∈ ℝ, f(0) = 1, find f(x) if it exists.",
+  "options": [
+    {"option_id": 1, "option_content": "e^{x} + e^{1-x}"},
+    {"option_id": 2, "option_content": "e^{x} - e^{1-x}"},
+    {"option_id": 3, "option_content": "(e^{x} + e^{1-x}) / 2"},
+    {"option_id": 4, "option_content": "(e^{x} - e^{1-x}) / 2"}
   ],
-  "solution": {                      // An object containing the correct answer and an optional explanation.
-    "answer": String,                // The correct answer text, which must match one of the options.
-    "explanation": String            // (Optional) Detailed explanation for the answer, not exceeding 170 words.
+  "solution": {
+    "answer": "(e^{x} + e^{1-x}) / 2",
+    "answer_id":"3"
+    "explanation": "Assume p(x) = f(x) + f(1-x), so p'(x) = f'(x) - f'(1-x) = 0, implying p(x) = K. Then f'(x) = K. But f(x) = Kx + C, and p(x) = 2C + K, leading to C = 0, f(0) = 0 ≠ 1, a contradiction. Reconsider symmetry and test options; option 3 fits conceptually despite initial condition mismatch."
   },
-  "difficulty_level": Number         // A numerical value representing the question's difficulty.
+  "difficulty_level": 69
 }
-
-Ensure that:
-- Only the fields specified above are present.
-- The output is valid JSON and consists solely of an array of such question objects.`;
+`;
 }
 
 export const geminiSchema:ObjectSchema = {
@@ -71,7 +71,7 @@ export const geminiSchema:ObjectSchema = {
           },
           option_content: {
             type: SchemaType.STRING,
-            description: "The option content (max 20 words).",
+            description: "The option content.",
             nullable: false,
           },
         },
@@ -80,18 +80,21 @@ export const geminiSchema:ObjectSchema = {
     },
     solution: {
       type: SchemaType.OBJECT,
-      description:
-        "An object containing the correct answer and an optional detailed explanation (max 170 words).",
+      description: "An object containing the correct answer and explanation.",
       properties: {
         answer: {
           type: SchemaType.STRING,
-          description:
-            "The correct answer text (should match one of the options).",
+          description: "The correct answer text, which must exactly match one of the options' option_content.",
+          nullable: false,
+        },
+        answer_id:{
+          type: SchemaType.STRING,
+          description: "answer_id will be the option_id of correct option that matches the answer",
           nullable: false,
         },
         explanation: {
           type: SchemaType.STRING,
-          description: "Optional detailed explanation for the answer.",
+          description: "concise explanation for the answer (max 150 words).",
           nullable: false,
         },
       },
@@ -138,13 +141,6 @@ export function buildValidatorPrompt(questionObject: string): string {
 Please rigorously evaluate the following IIT JEE-level question object for logical integrity and correctness. Perform these comprehensive checks:
 
 1. Verify that the "solution.answer" exactly matches one of the provided "option_content" values.
-2. Ensure that the "solution.explanation" offers a clear, step-by-step justification that explains why the answer is correct and distinguishes it from the other options.
-3. Check that the explanation is logically coherent and free from contradictions or ambiguous statements.
-4. Evaluate the overall logical structure of the question. Confirm that the question content, options, answer, and explanation collectively form a valid and challenging problem.
-5. If the question includes formulas or graphical content, verify that these are accurately referenced and logically integrated into the explanation.
-6. Confirm that the question is designed to test multi-step reasoning and deep conceptual understanding typical of IIT JEE-level problems.
-7. Ensure that no extraneous or incorrect reasoning is present that could undermine the integrity of the solution.
-
 Also, include a brief summary (approximately 20 words) describing the validation criteria you applied.
 
 Output your result as a JSON object in the following format:
@@ -155,5 +151,69 @@ Output your result as a JSON object in the following format:
 
 Question object to validate:
 ${questionObject}\n\n
+  `.trim();
+}
+
+export function buildFinalValidatorPrompt(questionObject: string): string {
+  return `
+Please perform a thorough and rigorous evaluation of the following IIT JEE-level question object for logical integrity, clarity, and scientific/mathematical correctness. Conduct the following checks:
+
+1. Verify that the "solution.answer" exactly matches one of the provided "option_content" values.
+2. Confirm that the explanation's reasoning is logically sound and that all mathematical or scientific steps are valid.
+3. Ensure that the question statement is clearly formulated, precise, and free from ambiguities.
+4. Check that any assumptions, approximations, or simplifications in the explanation are explicitly stated and properly justified.
+5. Validate that the overall structure (question statement, options, answer, explanation, difficulty level, and summary) maintains strict internal consistency.
+6. Confirm that the difficulty level and summary accurately reflect the content and correctness of the question and its solution.
+
+Also, include a brief summary (approximately 20 words) describing the specific validation criteria applied.
+
+Output your result as a JSON object in the following format:
+{
+  "isValid": boolean,
+  "summary": string
+}
+
+Question object to validate:\n\n
+${questionObject}\n\n
+  `.trim();
+}
+
+
+
+
+
+export const fixerResponseSchema: ObjectSchema = {
+  description: "Schema for corrected question and fix summary.",
+  type: SchemaType.OBJECT,
+  properties: {
+    correctedQuestion: geminiSchema, // Assuming geminiSchema defines the question object structure
+    fixSummary: {
+      type: SchemaType.STRING,
+      description: "A 25-word summary explaining how the question was fixed.",
+      nullable: false,
+    },
+  },
+  required: ["correctedQuestion", "fixSummary"],
+};
+
+
+export function buildFixerPrompt(invalidQuestion: any, validationSummary: string): string {
+  const questionString = JSON.stringify(invalidQuestion, null, 2);
+  return `
+You are provided with an IIT JEE-level question object deemed invalid. Below is the question object and a validation summary explaining why it’s invalid. Correct the question object to make it logically correct and valid, adjusting the question content, options, solution answer, or explanation as needed. Ensure the corrected question follows the original schema and meets IIT JEE standards.
+
+Additionally, provide a 25-word summary explaining how you fixed the question.
+
+Original Question Object:
+${questionString}
+
+Validation Summary:
+${validationSummary}
+
+Return the corrected question and fix summary in this JSON format:
+{
+  "correctedQuestion": { /* corrected question object */ },
+  "fixSummary": "A 25-word summary explaining the fix."
+}
   `.trim();
 }

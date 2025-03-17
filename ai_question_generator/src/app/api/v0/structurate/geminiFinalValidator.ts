@@ -1,4 +1,4 @@
-import { validatorSchema, buildValidatorPrompt } from "./prompts";
+import { validatorSchema, buildFinalValidatorPrompt } from "./prompts";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini API
@@ -16,12 +16,13 @@ const model = genAI.getGenerativeModel({
 });
 
 
-export async function geminiValidator(question: any): Promise<{isValid:boolean, summary:string}> {
+export async function geminiFinalValidator(question: any): Promise<{isValid:boolean, summary:string}> {
   try {
+    console.log("in final validator")
     
     const questionString = JSON.stringify(question);
 
-    const prompt = buildValidatorPrompt(questionString);
+    const prompt = buildFinalValidatorPrompt(questionString);
 
     const generationResult = await model.generateContent(prompt);
     const responseText = generationResult.response.text();
@@ -31,6 +32,7 @@ export async function geminiValidator(question: any): Promise<{isValid:boolean, 
       if (!validStructeedOutput) {
         console.error("Validation failed for question:", question);
       }
+      console.log("validation sucess: ",validStructeedOutput)
       return validStructeedOutput;
     } else {
       console.error("Unexpected validation response format:", validStructeedOutput);
