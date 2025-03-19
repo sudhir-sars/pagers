@@ -15,15 +15,15 @@ const model = genAI.getGenerativeModel({
   },
 });
 
-export async function geminiFixer(invalidQuestion: any, validationSummary: string): Promise<any> {
-  const prompt = buildFixerPrompt(invalidQuestion, validationSummary);
+export async function geminiFixer(invalidQuestion: any, validationSummary: string,subject:string): Promise<any> {
+  const prompt = buildFixerPrompt(invalidQuestion, validationSummary,subject);
   try {
     const generationResult = await model.generateContent(prompt);
     const responseText = await generationResult.response.text();
     const correctedQuestion = JSON.parse(responseText);
     return correctedQuestion;
   } catch (error) {
-    console.error("Error in geminiFixer:", error);
+    console.error("Error in geminiFixer:", "error");
     return invalidQuestion; // Return original question if fixing fails
   }
 }

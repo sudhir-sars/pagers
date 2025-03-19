@@ -121,3 +121,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Target your .markdown-content container and any pre/code blocks */
+.markdown-content pre,
+.markdown-content code {
+  white-space: pre-wrap !important;  /* Force wrapping in <pre> blocks */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow-x: auto; /* or 'hidden' if you want to remove scrollbars completely */
+}
+
+
+
+/* If fraction bars or large equations still overflow, 
+   you can force the display to wrap. */
+.markdown-content .MathJax_Display,
+.markdown-content .MathJax {
+  white-space: normal !important;
+  display: block !important; 
+  max-width: 100% !important;
+}
+/* Let big display math scale to container width */
+.markdown-content .MathJax_Display,
+.markdown-content .MathJax_SVG_Display {
+  max-width: 100% !important;
+  overflow-x: auto;  /* or hidden */
+  display: block !important;
+}
+
+.markdown-content [style*="white-space: nowrap"] {
+  white-space: pre-wrap !important;
+}
+

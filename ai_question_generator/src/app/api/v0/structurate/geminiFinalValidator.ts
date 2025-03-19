@@ -18,7 +18,7 @@ const model = genAI.getGenerativeModel({
 
 export async function geminiFinalValidator(question: any): Promise<{isValid:boolean, summary:string}> {
   try {
-    console.log("in final validator")
+    // console.log("in final validator")
     
     const questionString = JSON.stringify(question);
 
@@ -32,7 +32,7 @@ export async function geminiFinalValidator(question: any): Promise<{isValid:bool
       if (!validStructeedOutput) {
         console.error("Validation failed for question:", question);
       }
-      console.log("validation sucess: ",validStructeedOutput)
+      // console.log("validation sucess: ",validStructeedOutput)
       return validStructeedOutput;
     } else {
       console.error("Unexpected validation response format:", validStructeedOutput);

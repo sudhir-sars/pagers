@@ -5,6 +5,8 @@ import mongoose, { Schema, model } from "mongoose";
 
 export interface QuestionDocument extends mongoose.Document {
   subject: string;
+  topic: string;
+  subtopic: string;
   content: string;
   options: {
     option_id: string;
@@ -13,6 +15,7 @@ export interface QuestionDocument extends mongoose.Document {
   }[];
   solution: {
     answer: string;
+    answer_id: string;
     explanation: string;
    
   };
@@ -28,6 +31,8 @@ const QuestionSchema = new Schema<QuestionDocument>(
   {
   
     subject: { type: String, required: true },
+    topic: { type: String, required: true },
+    subtopic: { type: String, required: true },
     content: { type: String, required: true },
     
   
@@ -40,6 +45,7 @@ const QuestionSchema = new Schema<QuestionDocument>(
     ],
     solution: {
       answer: { type: String, required: true },
+      answer_id: { type: String, required: true },
       explanation: { type: String },
     
     },
@@ -49,13 +55,13 @@ const QuestionSchema = new Schema<QuestionDocument>(
       required:true,
       default:true,
     },
-    difficulty_level: { type: Number, default: 5 },
+    difficulty_level: { type: Number, default: 50 },
     summary: { type: String,required:true},
   },
   { timestamps: true },
 );
 
 // Create and export the model
-export const Question =
-  mongoose.models.Question ||
-  model<QuestionDocument>("Question", QuestionSchema);
+export const AiQuestion =
+  mongoose.models.AiQuestion ||
+  model<QuestionDocument>("AiQuestion", QuestionSchema);

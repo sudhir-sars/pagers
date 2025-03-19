@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/mongo";
-import { QuestionModel } from "@/model/Question";
+import { AiQuestion } from "@/model/AiQuestion";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     // Fetch questions using the filter.
-    const questions = await QuestionModel.find(filter);
+    const questions = await AiQuestion.find(filter);
     return NextResponse.json({ questions });
   } catch (error) {
     return NextResponse.error();
